@@ -1,13 +1,40 @@
 #+TITLE: A complete configuration for the EXWM X11 window manager
 #+CREATOR: Johan Widén
 
-* Table of Content                                                      :TOC:
+* Table of Contents                                                     :TOC:
   :PROPERTIES:
   :ID:       bad55575-cc19-4d0e-9e50-4e89fc834c38
+  :TOC:      :include all :ignore this
   :END:
+
+:CONTENTS:
+- [[#introduction][Introduction]]
+- [[#why-use-exwm-will-it-fit-my-workflow][Why use EXWM? Will it fit my workflow?]]
+- [[#bugs-and-deficiencies][Bugs and deficiencies]]
+- [[#overview-of-the-setup][Overview of the setup]]
+  - [[#log-in-on-a-tty-and-run-startx-from-profile][Log in on a tty and run startx from .profile]]
+  - [[#xinitrcexwm][.xinitrc.exwm]]
+  - [[#xmodmapexwm][.Xmodmap.exwm]]
+  - [[#exwm-configuration-in-the-emacs-init-file][EXWM configuration in the emacs init file]]
+    - [[#support-for-encryption-gpg][Support for encryption (gpg)]]
+    - [[#exwm-randr-configuration][exwm-randr configuration]]
+    - [[#exwm-configuration][exwm configuration]]
+      - [[#exwm-proper-configuration][exwm proper configuration]]
+      - [[#mode-line-configuration][mode line configuration]]
+      - [[#helm-exwm-specific-configuration][Helm exwm specific configuration]]
+      - [[#a-tip-about-browser-interaction][A tip about browser interaction]]
+      - [[#a-tip-about-monitoring-memory-cpu-etc][A tip about monitoring memory, cpu etc]]
+- [[#x11-screen-and-workspace-configuration][X11 screen and workspace configuration]]
+  - [[#environment-variables-x11_-and-exwm_][environment variables X11_* and EXWM_*]]
+  - [[#exwm_xrandrbash][~/exwm_xrandr.bash]]
+  - [[#jwexwm-change-screen-hook][jw/exwm-change-screen-hook()]]
+- [[#how-to-try-the-provided-configuration][How to try the provided configuration]]
+:END:
+
 * Introduction
   :PROPERTIES:
   :ID:       f98598ef-0b02-40d1-80e6-55cdd128867b
+  :TOC:       :include descendants
   :END:
 Below I describe how, and why, I set up and configured the EXWM X11
 [[https://wiki.archlinux.org/index.php/Window_manager][window manager]], on Ubuntu 20.4. I used EXWM version 0.24, and emacs
@@ -76,6 +103,7 @@ but also why it is done.
 * Why use EXWM? Will it fit my workflow?
   :PROPERTIES:
   :ID:       4d5a26e5-09b3-4c4d-83bd-c65428745bb6
+  :TOC:       :include descendants
   :END:
 EXWM is a tiling window manager, geared to doing as much as possible using just
 the keyboard. A mouse is of course also supported.
@@ -144,6 +172,7 @@ problem for me, but it happens occasionally.
 * Bugs and deficiencies
   :PROPERTIES:
   :ID:       e9e0f971-ec77-4585-a178-29313e1d86c4
+  :TOC:       :include descendants
   :END:
 X11 applications sometimes do not get input focus when they are created, or
 when one switches between the applications windows, in the same emacs window.
@@ -173,6 +202,7 @@ and the issue is probably an EXWM issue.
 * Overview of the setup
    :PROPERTIES:
    :ID:       160a21a2-336d-4a5d-8e6b-1b8fe4c1f2a7
+   :TOC:       :include descendants
    :END:
 ** Log in on a tty and run startx from .profile
    :PROPERTIES:
@@ -493,6 +523,7 @@ This provides resource monitoring, in the terminal status bar.
 * X11 screen and workspace configuration
    :PROPERTIES:
    :ID:       e28da70a-dc4f-465f-9533-f328e725669b
+   :TOC:       :include descendants
    :END:
 An overview of:
 - the environment variables X11_* and EXWM_* defined in .xinitrc.exwm
@@ -594,6 +625,7 @@ to position these screens relative to each other.
 * How to try the provided configuration
   :PROPERTIES:
   :ID:       56d63cc3-3fe6-4ae8-a125-02fc427b8877
+  :TOC:       :include descendants
   :END:
 Copy .Xmodmap.exwm, .xinitrc.exwm, exwm_xrandr.bash to your home directory.
 
