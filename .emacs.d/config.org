@@ -839,6 +839,9 @@ Note that the key bindings for <tab> and C-z are switched. Comment out if you do
   :PROPERTIES:
   :ID:       941ba943-b27f-47dd-b0fd-1fa655b3928a
   :END:
+When a buffer list is displayed, we want a separate section for EXWM buffers.
+EXWM buffers that do not belong to the current workspace, are listed with an 
+indent.
 #+BEGIN_SRC emacs-lisp
   (use-package helm-exwm
     :ensure t
