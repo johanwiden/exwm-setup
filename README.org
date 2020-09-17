@@ -28,6 +28,7 @@
   - [[#environment-variables-x11_-and-exwm_][environment variables X11_* and EXWM_*]]
   - [[#script-exwm_xrandrbash][script ~/exwm_xrandr.bash]]
   - [[#jwexwm-change-screen-hook][jw/exwm-change-screen-hook()]]
+- [[#emacs-init-loads-files-from-melpa-and-github][Emacs init loads files from melpa and github]]
 - [[#how-to-try-the-provided-configuration][How to try the provided configuration]]
 :END:
 
