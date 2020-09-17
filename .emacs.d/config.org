@@ -333,6 +333,8 @@ Note that the key bindings for <tab> and C-z are switched. Comment out if you do
   :PROPERTIES:
   :ID:       6e1c784d-012c-4c85-a6c3-efcf4f96ffdb
   :END:
+Make emacs handle queries for gpg passwords.
+
 #+BEGIN_SRC emacs-lisp
   (setf epg-pinentry-mode 'loopback)
   (defun pinentry-emacs (desc prompt ok error)
@@ -345,6 +347,17 @@ Note that the key bindings for <tab> and C-z are switched. Comment out if you do
   :PROPERTIES:
   :ID:       0aabe0ee-8493-478f-a3c8-b638a35dd1f1
   :END:
+Support for multiple monitors, and plugging and unplugging of monitors.
+
+If you have a static setup, i.e. you will not change the screen configuration 
+while emacs is running, then you do not need to 
+define jw/exwm-change-screen-hook.
+
+If you are going to use more than one screen at the same time, you need to 
+define exwm-randr-workspace-monitor-plist, and call "(exwm-randr-enable)".
+"(exwm-randr-enable)" must also be called if you use 
+exwm-randr-screen-change-hook.
+
 #+BEGIN_SRC emacs-lisp
     (use-package exwm
      :ensure t)
@@ -549,6 +562,43 @@ Note that the key bindings for <tab> and C-z are switched. Comment out if you do
   :PROPERTIES:
   :ID:       0f7da169-9bb9-4bad-a7b2-6c6a5db9b6ce
   :END:
+Code has been copied from 
+[[https://github.com/ch11ng/exwm/blob/master/exwm-config.el]], changing the names 
+so they can not collide with exwm proper.
+The code has then been modified, mainly with settings from the [[https://gitlab.com/ambrevar/dotfiles/-/blob/master/.emacs.d/lisp/init-exwm.el][ambrevar]] 
+configuration.
+
+A hook function that executes [[https://wiki.archlinux.org/index.php/Xmodmap][xmodmap]] is defined and added to 
+exwm-manage-finish-hook. The hook function unhooks itself when executed, 
+to only execute once.
+
+browse-url-generic-program is redefined to use google-chrome, if not overridden 
+by the "BROWSER" environment variable, or it is defined via xdg-mime.
+
+EXWM buffer names are changed to be much more human readable.
+For example, the buffer for a google-chrome window, will get its name from the 
+title of the currently selected tab in that window.
+
+The EXWM keybindings are all defined as one element sequences. This is 
+required, except for some special cases such as "C-c C-q". To avoid collisions 
+with other emacs keybindings the exwm-input-global-keys use the "Super"
+modifier key, and the simulation keys use the "Hyper" modifier key.
+
+The key bindings under
+
+  ;; 'S-s-N': Move window to, and switch to, a certain workspace.
+
+are keyboard layout specific. The provided configuration is for an ascii
+keyboard.
+
+To support a mode-line indicator for EXWM "line-mode"/"char-mode" a hook is set
+to force a redisplay of the current buffers mode line.
+
+Support for resizing windows, using the mouse.
+Position the mouse on the divider line between two windows, the mouse pointer 
+should then change to a double arrow.
+Press the left mouse button, and move the mouse.
+
 #+BEGIN_SRC emacs-lisp
   (require 'ido)
   (use-package windower
@@ -754,6 +804,12 @@ Note that the key bindings for <tab> and C-z are switched. Comment out if you do
   :PROPERTIES:
   :ID:       1fd4aca5-d623-49d5-9be4-54c0e96e5daf
   :END:
+An indicator is added to the mode line of left-most, bottom-most window in each 
+workspace, to display that workspaces number.
+An indicator is added to the mode line of each EXWM window to display the EXWM 
+input mode: "line-mode" or "char-mode".
+
+Note that a hook to redisplay the modeline is set in [[*exwm-config]].
 #+BEGIN_SRC emacs-lisp
   (use-package telephone-line
    :ensure t)
