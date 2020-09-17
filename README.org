@@ -1,0 +1,614 @@
+#+TITLE: A complete configuration for the EXWM X11 window manager
+#+CREATOR: Johan Widén
+
+* Table of Content                                                      :TOC:
+  :PROPERTIES:
+  :ID:       bad55575-cc19-4d0e-9e50-4e89fc834c38
+  :END:
+* Introduction
+  :PROPERTIES:
+  :ID:       f98598ef-0b02-40d1-80e6-55cdd128867b
+  :END:
+Below I describe how, and why, I set up and configured the EXWM X11
+[[https://wiki.archlinux.org/index.php/Window_manager][window manager]], on Ubuntu 20.4. I used EXWM version 0.24, and emacs
+version 27.1. For more info on X11 see [[https://en.wikipedia.org/wiki/X_Window_System][X Window System]] and [[https://wiki.archlinux.org/index.php/Xorg][Xorg]].
+
+[[https://github.com/ch11ng/exwm][EXWM]] (Emacs X Window Manager) is a full-featured tiling X window manager for
+Emacs built on top of [[https://github.com/ch11ng/xelb][XELB]].
+
+The code used in the setup is rather lengthy, so in this document I include
+only fragments that help explain why and how I did something. A complete
+working, setup can be found [[https://github.com/johanwiden/exwm-setup][here]]. The emacs configuration is fairly bare
+bones, just what is needed for a complete EXWM setup.
+
+Features:
+- Support for multiple monitors, and plugging and unplugging of monitors.
+- Uses xmodmap to configure the keyboard.
+- Many convenient key bindings related to EXWM.
+- A mode line indicator that shows the workspace number. Only one
+  indicator per workspace.
+- A mode line indicator in EXWM windows that shows "line mode" or
+  "character mode"
+- The EXWM buffers have meaningful names.
+- The buffer list has a section for EXWM buffers. Indented buffer names
+  belong to a different workspace.
+- Hide the mouse pointer when not in use.
+- Some tips about how to get a more pleasant interaction with Google Chrome.
+
+Bugs and deficiencies: see a separate section below.
+
+When you look at the code, remember:
+- This is an example of how it can be done. The mechanisms and the whys are
+  important, not the details.
+- You do not have to do it this way, for example:
+  - I use Helm for completions, perhaps you want something else
+  - What key bindings do you want for EXWM?
+  - How do you want to configure your keyboard?
+  - Do you want emacs to handle everything, as is done here, or instead let
+    EXWM run under another window environment such as [[https://wiki.archlinux.org/index.php/EXWM][LXDE]] or Gnome,
+    or [[https://github.com/ch11ng/exwm/wiki/Installation-on-macOS][XQuartz under macOS]]?
+  - At present I have felt no need for a composite manager, such as Compton.
+    Again see the [[https://wiki.archlinux.org/index.php/EXWM][archlinux exwm]] page.
+  - This setup supports multiple monitors, and plugging and unplugging of
+    monitors. But perhaps you have a static setup?
+    In that case you can get by with just a hardcoded call to xrandr in your
+    init files, and no need to hook into exwm-randr.el.
+
+I am publishing this because it took me a long time to get to the point where
+I had something that I would want for daily use.
+I had to google a lot, and try various things that did no work out well.
+Much of the configuration is based on what people have published on reddit,
+github and gitlab. I want to mention especially the [[https://gitlab.com/ambrevar/dotfiles/-/blob/master/.emacs.d/lisp/init-exwm.el][ambrevar]] configuration.
+There are pieces from a number of other people, but sadly I have lost track
+of where I got them.
+
+Improvements and corrections on this setup are very welcome.
+
+My experience with EXWM is that it works well, it just needs a good
+configuration. And that is the main deficiency at present, the documentation
+for how to do a complete  setup is missing. If you have a setup you feel happy
+with, which might be of help for other users, why not publish a guide?
+For example, how a about a more complete guide for EXWM under macOS, beyond
+what is published [[https://github.com/ch11ng/exwm/wiki/Installation-on-macOS][here]]. Or under LXDE or Gnome, or with a composite manager.
+But please remember: a guide should not just explain how to do something,
+but also why it is done.
+
+* Why use EXWM? Will it fit my workflow?
+  :PROPERTIES:
+  :ID:       4d5a26e5-09b3-4c4d-83bd-c65428745bb6
+  :END:
+EXWM is a tiling window manager, geared to doing as much as possible using just
+the keyboard. A mouse is of course also supported.
+For more on tiling window managers see [[https://wiki.archlinux.org/index.php/Window_manager#Tiling_window_managers][Tiling window managers]]. If you prefer
+working with windows on a desktop, then EXWM might not be for you.
+
+In EXWM all X11 windows are available as emacs buffers, so switching to an
+X11 window can be done by selecting an emacs buffer. An X11 window is presented
+in an emacs window, so the usual emacs window movement commands can be used to
+move between windows, and move windows.
+
+EXWM windows are normally tiled, but there is also support for floating windows.
+Floating windows can be moved by pressing Super and left mouse button together.
+Floating windows can be resized by pressing Super and right mouse button
+together.
+
+EXWM has the concept of workspaces. A workspace is just an emacs frame.
+Each monitor has its own set of workspaces, and each monitor displays one
+workspace at a time. Only one workspace, on one monitor, is active (receives
+keyboard input) at a time. One uses emacs commands, normally bound to keys,
+to switch between workspaces.
+
+One can interact with X11 applications in two ways:
+- "Line mode": Using normal emacs interactions, with keys bound to emacs
+  functions. Self inserting keys are handed off to the X11 application.
+  Here there is also a buffer local key map, called "simulation keys" that
+  translates some emacs key bindings to application specific keys.
+  There is also a key map "exwm-mode-map" that is active only in EXWM windows
+  (a window for an X11 application, as opposed to an ordinary emacs buffer).
+  I find that I use line mode almost all the time.
+- "char-mode": This is an escape hatch, where almost all keys are sent directly
+  to the X11 application.
+
+I find the ease of moving between, and interacting with, ordinary emacs buffers
+and EXWM windows, very addictive.
+
+EXWM has only one X11 display, to which all monitors are attached as X11
+screens (what [[https://wiki.archlinux.org/index.php/Xrandr][xrandr]] calls "output"), so you can freely move the mouse between
+monitors. For more on using several monitors with X11, and terminology for
+this, see [[https://wiki.archlinux.org/index.php/multihead][Multihead]].
+
+A downside with using just one X11 display, is that X11 will use the same
+virtual resolution (Dots Per Inch, DPI) on all screens. The xrandr option
+"--dpi" is per display, not per screen. If you have a high resolution monitor
+and a low resolution monitor in your setup, and you want to use them together,
+you will probably have to make some ugly compromise.
+
+I have a HiDPI laptop, that can have up to 246 physical DPI, and an external
+monitor with up to 106 physical DPI. My compromise is that I configure the
+laptop display to use a resolution (number of horizontal and vertical pixels ),
+that is much lower than what the monitor supports. This results in text being
+about the same size on both monitors, but also somewhat unsightly black borders
+at the left and right side of the laptop monitor (the screen and the monitor
+have different proportions between vertical and horizontal).
+
+Emacs is fundamentally single threaded, so if you start something long running
+in emacs, e.g. executing an org mode code block, you will not be able to do
+anything until that job has finished. I am seldom bothered by this, but it
+happens.
+
+Also if you do something, such as an incomplete key sequence, that makes emacs
+wait for your input, you will not be able to do anything else until you have
+either completed the interaction, or aborted it. This has not been much of a
+problem for me, but it happens occasionally.
+
+* Bugs and deficiencies
+  :PROPERTIES:
+  :ID:       e9e0f971-ec77-4585-a178-29313e1d86c4
+  :END:
+X11 applications sometimes do not get input focus when they are created, or
+when one switches between the applications windows, in the same emacs window.
+This is probably an EXWM bug. The workaround is to then move out of the window,
+and back again.
+
+Emacs is fundamentally single threaded.
+
+What is a feature: that all screens are attached to one display, and thus
+allows:
+- Moving the mouse between screens
+- Possible to position screens individually
+also leads to the problem that all screens have the same virtual resolution.
+See the preceding section.
+
+Positioning screens relative to each other:
+- This configuration script supports positioning screens beside each other
+  in the horizontal direction, but it does not (yet?) support xrandr options
+  "--above", "--below" or "--same-as".
+
+When using helm together with EXWM, enabling emacs follow mode seems to
+corrupt EXWM.
+See [[https://github.com/emacs-helm/helm/issues/1889]]
+The issue is closed, but that is just because it was reported against helm,
+and the issue is probably an EXWM issue.
+
+* Overview of the setup
+   :PROPERTIES:
+   :ID:       160a21a2-336d-4a5d-8e6b-1b8fe4c1f2a7
+   :END:
+** Log in on a tty and run startx from .profile
+   :PROPERTIES:
+   :ID:       e4bbe3c4-1296-4128-abb5-fe83b491d236
+   :END:
+EXWM is started when I log in on tty5. I select tty5 by pressing C-M-<f5>,
+that is, I press function key F5 while holding down Ctrl and Alt.
+EXWM is started from my ~/.profile, see [[./.profile]]. Here is the relevant part:
+
+#+BEGIN_SRC shell
+# gpg has to be started here (or in .xinitrc.exwm), if we want to have encryption in exwm
+gpg-connect-agent /bye
+SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
+export SSH_AUTH_SOCK
+if [ -z "$DISPLAY" -a "$(tty)" = '/dev/tty5' ]; then
+    exec /usr/bin/startx ~/.xinitrc.exwm >/tmp/startx.log 2>&1
+fi
+#+END_SRC
+
+gpg is started in all logins, not just for EXWM, so that gpg encryption is
+always available.
+
+The script starts EXWM using the standard startx script. Using startx ensures
+that the environment is set up appropriately for X11.
+startx is called only if we login on tty5, and only if we are not already in
+an X11 session.
+
+startx will call xinit, and xinit will run the script ~/.xinitrc.exwm.
+The output is logged in /tmp/startx.log. Have a look at that file now and then
+to check that everything starts as expected.
+
+Avoid using the default script ~/.xinitrc, as that script may be executed by
+other window managers.
+
+** .xinitrc.exwm
+   :PROPERTIES:
+   :ID:       58519e62-e313-4ff7-98d5-352f546e6e7c
+   :END:
+This script, [[./.xinitrc.exwm]], is responsible for initializing X11 and starting
+emacs. When this script terminates, you will (hopefully) be logged out.
+I said hopefully, because this works only if everything started from this
+script can receive a termination signal when the script tries to terminate.
+So do not spawn daemon processes in this script. It is OK to execute processes
+in the background.
+
+The script runs as a bash script on my computer, but I have tried to limit
+myself to /bin/sh syntax, for compatibility.
+
+The script has the following parts, from top to bottom, some of which are
+described later:
+- Disable X11 access control for the current user.
+- Set an environment variable for Java AWT. Run site X11 init scripts.
+- Set environment variables for X11 screens:
+  - Which screens are to be used, with what resolution, and how are they
+    arranged?
+  - Should some screen have a specific workspace?
+  - Which screen should be "primary", i.e. be used for workspaces that have not
+    been explicitly listed?
+  - Should all listed screens be used, or just one?
+  - What Dots Per Inch (X11 DPI) should be used?
+  Actually this is a bit more involved, because screens can be unplugged, see
+  the dedicated section below: [[*X11 screen and workspace configuration]]
+- Run script, [[./exwm_xrandr.bash][~/exwm_xrandr.bash]] to execute xrandr according to the preceding
+  configuration.
+  This script first queries xrandr to see which screens are actually available,
+  and then configures those with one or two more invocations of xrandr.
+- Optionally execute [[https://wiki.archlinux.org/index.php/x_resources][xrdb]] to add X11 resource configurations stored in some
+  file.
+- Optionally start [[https://wiki.archlinux.org/index.php/Xsettingsd][xsettingsd]]. The idea behind this is that you should have
+  previously started some other window manager such as Gnome or KDE, and saved
+  that window managers configuration to a certain file. xsettingsd will read
+  the file and report the settings to the application running under EXWM.
+- Run xset to configure screen blanking, i.e. that you displays will turn off
+  when they have been idle for a while.
+- Optionally set keyboard delay and repeat rate. I like the default values
+  provided by Ubuntu.
+- Set the default mouse cursor. This is from the original EXWM configuration.
+- Optionally start [[https://wiki.archlinux.org/index.php/Unclutter][unclutter]]. It hides the X11 mouse cursor, when it has been
+  unused for a while.
+- Optionally start some non X11 processes. It is probably better to make them
+  systemd user services.
+- Optionally execute numlockx to set keyboard keypad in "Num Lock" mode,
+  or not. This program is part of some Linux distributions. 
+- Finally start emacs. This can be done in two ways: In emacs server mode,
+  or in non server mode. I use server mode, this has the upside that X11
+  applications can use emacs as editor. I also provide the commented out
+  command to start emacs in non server mode.
+  In both cases the command to start exwm, "(exwm-enable)", is provided
+  on the command line, it is not part of the emacs init file.
+  It is thus possible to start emacs under another window manager, or in
+  a terminal.
+  For server mode:
+  - export environment variables VISUAL and EDITOR
+  - Start emacs server. This requires that the call "(server-start)" is part of
+    emacs init file. This starts EXWM, but does not display any emacs frames.
+  - Start emacsclient, to open emacs on the screens.
+
+Notably missing here is a call to [[https://wiki.archlinux.org/index.php/Xmodmap][xmodmap]] to configure the keyboard and mouse
+layout. I found that this call must be done after EXWM has started completely,
+otherwise the settings will be lost during EXWM start. So there is a call to
+xmodmap in the emacs init file. This runs on an emacs EXWM hook and is then
+removed from the hook.
+** .Xmodmap.exwm
+   :PROPERTIES:
+   :ID:       ba48e5ee-b0aa-49b0-bfaf-d486a8152bc9
+   :END:
+This file, [[./.Xmodmap.exwm]], is the input to [[https://wiki.archlinux.org/index.php/Xmodmap][xmodmap]]. It makes the "Caps Lock"
+key a "Hyper" modifier key.
+
+#+BEGIN_EXAMPLE
+keycode 66 = Hyper_R
+clear Lock
+add mod3 = Hyper_R
+#+END_EXAMPLE
+
+Change according to what you want. More examples can be found on
+the [[https://wiki.archlinux.org/index.php/Xmodmap][Archlinux xmodmap page]].
+
+Keycode "66" is what my keyboard sends when I press the "Caps Lock" key.
+Note that your keyboard might have a keycode value different from "66".
+
+To test and check the result of running xmodmap, I found it convenient to open
+a shell window in emacs, and there run
+
+#+BEGIN_SRC shell
+xmodmap -pm
+#+END_SRC
+
+to show the current modifier map.
+
+** EXWM configuration in the emacs init file
+   :PROPERTIES:
+   :ID:       69d5b576-b8bf-4227-a4a7-cd01728f0c97
+   :END:
+This is an overview of the EXWM configuration. More detailed documentation is
+in [[./emacs.d/config.org]]
+
+*** Support for encryption (gpg)
+    :PROPERTIES:
+    :ID:       6713083a-d69e-4df6-87c9-30ee7a7bdcc3
+    :END:
+To make emacs handle queries for gpg passwords, the following is defined:
+
+#+BEGIN_SRC emacs-lisp
+  ;; let's get encryption established
+  (setf epg-pinentry-mode 'loopback)
+  (defun pinentry-emacs (desc prompt ok error)
+    (let ((str (read-passwd
+                (concat (replace-regexp-in-string "%22" "\""
+                                                  (replace-regexp-in-string "%0A" "\n" desc)) prompt ": "))))
+      str))
+#+END_SRC
+
+You may also be interested in [[https://github.com/ecraven/pinentry-emacs][pinentry-emacs]] to make other applications use 
+emacs to query for gpg passwords.
+
+Earlier versions of emacs used [[https://emacs.stackexchange.com/questions/59659/encrypted-password-file-with-emacs-gpg][epa-file]].
+
+*** exwm-randr configuration
+    :PROPERTIES:
+    :ID:       2ac70cfd-8594-4465-ab58-cc987c70fc58
+    :END:
+Support for multiple monitors, and plugging and unplugging of monitors.
+
+If you have a static setup, i.e. you will not change the screen configuration 
+while emacs is running, then you do not need to 
+define jw/exwm-change-screen-hook.
+
+If you are going to use more than one screen at the same time, you need to 
+define exwm-randr-workspace-monitor-plist, and call "(exwm-randr-enable)".
+"(exwm-randr-enable)" must also be called if you use 
+exwm-randr-screen-change-hook.
+
+*** exwm configuration
+    :PROPERTIES:
+    :ID:       04ffea26-08cc-4d4e-b6c8-60e0b3e070e0
+    :END:
+**** exwm proper configuration
+     :PROPERTIES:
+     :ID:       97676e05-f77b-488f-bd11-23e5d5fc26af
+     :END:
+Code has been copied from 
+[[https://github.com/ch11ng/exwm/blob/master/exwm-config.el]], changing the names 
+so they can not collide with exwm proper.
+The code has then been modified, mainly with settings from the [[https://gitlab.com/ambrevar/dotfiles/-/blob/master/.emacs.d/lisp/init-exwm.el][ambrevar]] 
+configuration.
+
+A hook function that executes [[https://wiki.archlinux.org/index.php/Xmodmap][xmodmap]] is defined and added to 
+exwm-manage-finish-hook. The hook function unhooks itself when executed, 
+to only execute once.
+
+browse-url-generic-program is redefined to use google-chrome, if not overridden 
+by the "BROWSER" environment variable, or it is defined via xdg-mime.
+
+The following code changes EXWM buffer names to be much more human readable.
+For example, the buffer for a google-chrome window, will get its name from the 
+title of the currently selected tab in that window. I really like this.
+Also see [[*Helm exwm specific configuration]].
+
+#+BEGIN_SRC emacs-lisp
+  ;; Make class name the buffer name
+  (add-hook 'exwm-update-class-hook
+            (lambda ()
+            (exwm-workspace-rename-buffer exwm-class-name)))
+#+END_SRC
+
+To bind keys I use (kbd "binding") instead of the arcane [binding] syntax. The 
+kbd key syntax is much better documented, see for instance 
+[[http://ergoemacs.org/emacs/keyboard_shortcuts_examples.html]].
+
+The EXWM keybindings are all defined as one element sequences. This is 
+required, except for some special cases such as "C-c C-q". To avoid collisions 
+with other emacs keybindings the exwm-input-global-keys use the "Super"
+modifier key, and the simulation keys use the "Hyper" modifier key.
+
+A note about binding to non-ascii keys: If I bind to a non ascii key with the 
+"Super" modifier, I get a warning at key binding time that the key is unavailable,
+but it still works. I suspect that this is an emacs bug. None of my attempted
+workarounds have succeed in eliminating this annoying warning.
+
+The key bindings under
+
+#+BEGIN_SRC emacs-lisp
+;; 'S-s-N': Move window to, and switch to, a certain workspace.
+#+END_SRC
+
+are keyboard layout specific. The provided configuration is for an ascii
+keyboard. My efforts to make this code more generic, have so far failed.
+
+To support a mode-line indicator for EXWM "line-mode"/"char-mode" the following 
+hook is set
+
+#+BEGIN_SRC emacs-lisp
+  (add-hook 'exwm-input--input-mode-change-hook
+            'force-mode-line-update)
+#+END_SRC
+
+This forces a redisplay of the current buffers mode line.
+
+To support resizing windows, using the mouse, the following code is used.
+Position the mouse on the divider line between two windows, the mouse pointer 
+should then change to a double arrow.
+Press the left mouse button, and move the mouse.
+
+#+BEGIN_SRC emacs-lisp
+  ;; Allow resizing with mouse, of non-floating windows.
+  (setq window-divider-default-bottom-width 2
+        window-divider-default-right-width 2)
+  (window-divider-mode)
+#+END_SRC
+
+my-exwm-config--fix/ido-buffer-window-other-frame is from exwm-config.el.
+
+**** mode line configuration
+     :PROPERTIES:
+     :ID:       c24de552-6737-4ada-bcda-5a4cad960ab1
+     :END:
+An indicator is added to the mode line of left-most, bottom-most window in each 
+workspace, to display that workspaces number.
+An indicator is added to the mode line of each EXWM window to display the EXWM 
+input mode: "line-mode" or "char-mode".
+
+The code is based on a configuration by ambrevar, but I can no longer find it 
+on the internet. It uses the emacs package [[https://github.com/dbordak/telephone-line][telephone-line]], but similar things 
+are easily achieved with any mode line package.
+
+Note that a hook to redisplay the modeline is set 
+in [[*exwm proper configuration]].
+
+**** Helm exwm specific configuration
+     :PROPERTIES:
+     :ID:       d55f0f21-8deb-49c7-9fb8-f3e92465770f
+     :END:
+When a buffer list is displayed, we want a separate section for EXWM buffers.
+EXWM buffers that do not belong to the current workspace, are listed with an 
+indent.
+
+By default one can not switch to EXWM buffers belonging to other workspaces.
+[[*exwm proper configuration]] sets variable exwm-layout-show-all-buffers to t, 
+thus allowing such switching. Selecting an EXWM buffer that is currently 
+displaying in another workspace, results in somewhat unintuitive behaviour. 
+But selecting non displaying buffers works OK.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package helm-exwm
+    :ensure t
+    :config
+    (setq helm-exwm-emacs-buffers-source (helm-exwm-build-emacs-buffers-source))
+    (setq helm-exwm-source (helm-exwm-build-source))
+    (setq helm-mini-default-sources `(helm-exwm-emacs-buffers-source
+                                      helm-exwm-source
+                                      helm-source-recentf)))
+#+END_SRC
+
+**** A tip about browser interaction
+     :PROPERTIES:
+     :ID:       adaf68a1-c025-4830-94bd-e909877acb70
+     :END:
+With EXWM we are supposed to use the keyboard as much as possible. But internet 
+browsers like google-chrome in their basic configuration, are a bit lacking in
+that respect. One is often forced to use the mouse.
+
+To improve on this situation one can install an extension in the browser that 
+supports a more keyboard oriented interaction. For example:
+- google-chrome: [[https://github.com/philc/vimium][Vimium]]
+- firefox: [[https://addons.mozilla.org/en-GB/firefox/addon/vimium-ff/][vimium-ff]]
+- safari: [[https://github.com/guyht/vimari][Vimari]]
+
+**** A tip about monitoring memory, cpu etc
+     :PROPERTIES:
+     :ID:       96d9f808-71eb-4fb6-b015-2e62e9d8359d
+     :END:
+I do not monitor resources directly in emacs. Instead I start an X11 app that 
+provides resource monitoring. When I want resource monitoring I start an X11 
+terminal application, in which I start [[https://www.byobu.org/][byobu]], a configuration for tmux.
+This provides resource monitoring, in the terminal status bar.
+
+* X11 screen and workspace configuration
+   :PROPERTIES:
+   :ID:       e28da70a-dc4f-465f-9533-f328e725669b
+   :END:
+An overview of:
+- the environment variables X11_* and EXWM_* defined in .xinitrc.exwm
+- the script [[*~/exwm_xrandr.bash]] (called from [[*.xinitrc.exwm]])
+- the [[*jw/exwm-change-screen-hook()]]  elisp code in the emacs init file.
+
+The configuration is completely determined by the variables X11_* and EXWM_*,
+and the screen status reported by xrandr.
+
+** environment variables X11_* and EXWM_*
+   :PROPERTIES:
+   :ID:       a981a052-1b51-4555-b9f3-4178c7841ad9
+   :END:
+#+BEGIN_SRC shell
+# X11 screens (xrandr graphics outputs) I want to use. Names and values are from the output of /usr/bin/xrandr
+# They can be ordered in any way you want. The leftmost available screen will be primary, unless overridden
+# by X11_SCREEN_PREFERRED and that screen is available.
+# The primary screen is the default screen used for EXWM workspaces.
+# It will also be sorted first in Xinerama and RANDR geometry requests.
+export X11_SCREEN_LIST="eDP-1 DP-3"
+# xrandr --mode for each screen in X11_SCREEN_LIST
+export X11_SCREEN_MODE_LIST="1680x1050 3840x1600"
+# xrandr --rate for each screen in X11_SCREEN_LIST
+export X11_SCREEN_RATE_LIST="59.95 59.99"
+# How screens are arranged from left to right. Vertical order, and "--same-as" not yet implemented.
+export X11_SCREEN_ORDER_LIST="DP-3 eDP-1"
+# X11 screens (graphics outputs) that should always be explicitly turned off, if available.
+export X11_SCREEN_DISABLED_LIST="DP-2"
+# Primary X11 screen, if available
+export X11_SCREEN_PREFERRED="DP-3"
+#export X11_SCREEN_PREFERRED="eDP-1"
+# If X11_SCREEN_USE_ALL_AVAILABLE="yes" then use all available screens in X11_SCREEN_LIST:
+# - X11_SCREEN_PREFERRED is primary, if available
+# - If X11_SCREEN_PREFERRED is unavailable, primary is first available screen in X11_SCREEN_LIST.
+# Otherwise use only one:
+# - X11_SCREEN_PREFERRED if available
+# - If X11_SCREEN_PREFERRED is unavailable then use first available screen in X11_SCREEN_LIST.
+export X11_SCREEN_USE_ALL_AVAILABLE="yes"
+#export X11_SCREEN_USE_ALL_AVAILABLE="no"
+# Argument value for "xrandr --dpi", i.e. Dots Per Inch. This is for the X11 DISPLAY, i.e. used for all screens.
+export X11_DISPLAY_DPI=106
+# List of pairs "workspace-number screen"
+# Used to construct exwm-randr-workspace-monitor-plist in emacs.
+# If a screen in this list is unavailable, the workspace will be mapped to the primary screen.
+export EXWM_WORKSPACE_LIST="1 eDP-1 3 eDP-1"
+#export EXWM_WORKSPACE_LIST="1 DP-3 3 DP-3"
+#+END_SRC
+
+** ~/exwm_xrandr.bash
+   :PROPERTIES:
+   :ID:       83fac1f7-3b4b-4d10-b693-54a61fa2c182
+   :END:
+This script, [[./exwm_xrandr.bash]], executes xrandr before the start of EXWM, to 
+configure the X11 screens according to [[*environment variables X11_* and EXWM_*]]
+
+First xrandr is executed without arguments, to report the current status of 
+the X11 screens.
+
+Then the intersection of the available screens from that status, with 
+X11_SCREEN_LIST, X11_SCREEN_ORDER_LIST and X11_SCREEN_DISABLED_LIST is used to 
+build xrandr commands for the available screens.
+
+An xrandr command is executed to configure "--primary", "--mode" and --"rate" 
+for the screens to be used. All available screens in X11_SCREEN_DISABLED_LIST
+are configured as "--off".
+
+If more than one screen is to be used, then a final xrandr command is executed 
+to position these screens relative to each other.
+
+** jw/exwm-change-screen-hook()
+   :PROPERTIES:
+   :ID:       5fe4c608-afb1-4eb7-8d40-c92ec885ce92
+   :END:
+This elisp code, defined in the emacs init file, executes in EXWM when a screen 
+is plugged in or unplugged, to configure the X11 screens according to 
+[[*environment variables X11_* and EXWM_*]]
+
+The semantics of the code is very similar to that in [[*~/exwm_xrandr.bash]] except 
+that xrandr is also provided with arguments to explicitly turn "--off" any
+unavailable screen, if it is part of X11_SCREEN_LIST. The xrandr argument 
+"--auto" could have been used, but "--off" seems to work ok. This is necessary, 
+otherwise "xrandr --listactivemonitors" may list the screen as available. 
+See [[https://github.com/ch11ng/exwm/issues/529]]
+
+First xrandr is executed without arguments, to report the current status of the 
+X11 screens.
+
+Then the intersection of the available screens from that status, with 
+X11_SCREEN_LIST, X11_SCREEN_ORDER_LIST and X11_SCREEN_DISABLED_LIST is used to 
+build xrandr commands for the available screens.
+
+An xrandr command is executed to configure "--primary", "--mode" and --"rate" 
+for the screens to be used. All available screens in X11_SCREEN_DISABLED_LIST
+are configured as "--off". All unavailable screens in X11_SCREEN_LIST are 
+configured as "--off".
+
+If more than one screen is to be used, then a final xrandr command is executed 
+to position these screens relative to each other.
+* How to try the provided configuration
+  :PROPERTIES:
+  :ID:       56d63cc3-3fe6-4ae8-a125-02fc427b8877
+  :END:
+Copy .Xmodmap.exwm, .xinitrc.exwm, exwm_xrandr.bash to your home directory.
+
+Copy .emacs.d and rename it to say ~/exwm-setup
+
+Assuming that your current emacs directory is ~/.emacs.d do:
+- mv .emacs.d my_emacs.d
+- ln -s exwm-setup .emacs.d
+
+Then either:
+- Modify your ,profile, adding what is in .profile
+  Assuming that no X11 session is running, login to the tty, by pressing C-M-<F5> from the login screen.
+- Or, assuming no X11 session is running, login to a tty, and execute:
+  gpg-connect-agent /bye
+  SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
+  export SSH_AUTH_SOCK
+  /usr/bin/startx ~/.xinitrc.exwm >/tmp/startx.log 2>&1
+

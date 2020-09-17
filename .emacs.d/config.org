@@ -1,0 +1,861 @@
+#+STARTUP: overview
+#+TITLE: An emacs init that supports EXWM
+#+CREATOR: Johan Widén
+#+LANGUAGE: en
+#+OPTIONS: num:nil
+#+ATTR_HTML: :style margin-left: auto; margin-right: auto;
+
+* Bootstrap
+  :PROPERTIES:
+  :ID:       1752e376-1433-45b1-9506-a0824d22974b
+  :END:
+** Emacs lisp preferences
+   :PROPERTIES:
+   :ID:       b4e0f009-f406-463d-a6cb-e88ac9aa3cb0
+   :END:
+ If a .el file is newer than a .elc file, then use the .el file.
+ Also try to ensure that .elc files are up to date.
+ #+BEGIN_SRC emacs-lisp
+   (setq load-prefer-newer t)
+   (use-package auto-compile
+    :ensure t
+    :config
+     (auto-compile-on-load-mode 1)
+     (auto-compile-on-save-mode 1))
+ #+END_SRC
+** Use better defaults, also see lolsmacs below
+   :PROPERTIES:
+   :ID:       f28e55e3-89b4-4fb8-859b-1e64d4dc8077
+   :END:
+Always, always, prefer UTF-8
+#+BEGIN_SRC emacs-lisp
+(set-charset-priority 'unicode)
+(set-default-coding-systems 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+(set-selection-coding-system 'utf-8)
+(set-language-environment "UTF-8")
+(prefer-coding-system 'utf-8)
+(setq default-process-coding-system '(utf-8-unix . utf-8-unix))
+;; Treat clipboard input as UTF-8 string first; compound text next, etc.
+(setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING))
+#+END_SRC
+
+Inhibit startup message. 
+Do not ask for confirmation about killing processes, when exiting emacs.
+#+BEGIN_SRC emacs-lisp
+  (setq inhibit-startup-message t)
+  (setq confirm-kill-processes nil)
+  (setq-default
+   help-window-select t        ;; Focus new help windows when opened
+   debug-on-error t
+   indent-tabs-mode nil        ;; Adjust indent using 'space', not 'tab'
+   jit-lock-defer-time 0       ;; Defer fontification while there is input pending
+   window-combination-resize t ;; Resize windows proportionally
+   history-delete-duplicates t
+  )
+#+END_SRC
+
+Save recent files list periodically, when emacs has been idle for a while,
+because it will otherwise not be saved when emacs runs in server mode.
+#+BEGIN_SRC emacs-lisp
+  (run-with-idle-timer 600 t (lambda ()
+                              (let ((save-silently t))
+                               (recentf-save-list))))
+#+END_SRC
+
+Some UI elements are rather invasive.
+#+BEGIN_SRC emacs-lisp :results silent
+  (when window-system
+    (blink-cursor-mode 0)       ;; Disable the cursor blinking
+    (scroll-bar-mode 0)         ;; Disable the scroll bar
+    (tool-bar-mode 0)           ;; Disable the tool bar
+    ;; (tooltip-mode 0)         ;; Disable the tooltips
+  )
+#+END_SRC
+
+** Enable emacs server
+   :PROPERTIES:
+   :ID:       b00ca6e7-4444-4a1e-9e51-7ecfed4dc150
+   :END:
+#+BEGIN_SRC emacs-lisp
+  (server-start)
+#+END_SRC
+** Load =.custom.el=
+   :PROPERTIES:
+   :ID:       3e99756d-1e4a-4d9f-9fad-fd49a3b18496
+   :END:
+One is able to use the customization interface that is bundled within Emacs. It
+is meant to help people who are not familiar with Emacs Lisp in the
+configuration of Emacs itself. By default, changes in the customization will be
+automatically detected and appended at the end of the configuration file,
+=init.el=.
+
+Since that in my case, the actual configuration file is a new one, crafted by
+=org-mode=, adding code at the end of =init.el= might mess things up. The
+following tells Emacs to add extra code in another file that would  then be
+loaded, if existing.
+
+#+BEGIN_SRC emacs-lisp :results silent
+(setq-default custom-file (expand-file-name ".custom.el" user-emacs-directory))
+(when (file-exists-p custom-file)
+  (load custom-file))
+#+END_SRC
+
+** Load =.secret.el=
+   :PROPERTIES:
+   :ID:       87374bd4-ba9c-4fb5-ba5f-9ffbde7ca88e
+   :END:
+
+I load =~/.emacs.d/.secret.el= to keep sensible things out of version control.
+For instance, you could set your identity by customizing both =user-full-name=
+and =user-mail-address=. This is also where you want your API tokens to live.
+
+#+BEGIN_SRC emacs-lisp :results silent
+(defvar me/erc-nick               nil        "The ERC nick to use.")
+(defvar me/erc-password           nil        "The ERC password to use.")
+(defvar me/erc-port               nil        "The ERC port to use.")
+(defvar me/erc-server             nil        "The ERC server to use.")
+(defvar me/font-family            "Courier"  "The font to use.")
+(defvar me/font-size-default      110        "The font size to use for default text.")
+(defvar me/font-size-large        1.2        "The font size to use for larger text.")
+(defvar me/font-size-small        0.8        "The font size to use for smaller text.")
+
+(let ((secret.el (expand-file-name ".secret.el" user-emacs-directory)))
+  (when (file-exists-p secret.el)
+    (load secret.el)))
+#+END_SRC
+** Packages that are needed later on
+   :PROPERTIES:
+   :ID:       61f8b23a-9253-47fb-94eb-dca7e5a59a90
+   :END:
+*** bind-key
+    :PROPERTIES:
+    :ID:       b0ebcd29-5dac-4806-ab26-55975b513478
+    :END:
+Key binding support
+#+BEGIN_SRC emacs-lisp
+  (use-package bind-key
+   :ensure t)
+#+END_SRC
+*** straight package manager
+    :PROPERTIES:
+    :ID:       5375a4d2-a4df-48fb-a656-c98cf1ef217a
+    :END:
+straight will be used to load some elisp packages from github.
+#+BEGIN_SRC emacs-lisp
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+         (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+        (bootstrap-version 5))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+#+END_SRC
+
+** lolsmacs (Law Of Least Surprise), better emacs defaults
+   :PROPERTIES:
+   :ID:       44ccc326-1a58-4fab-a205-97db41a51eec
+   :END:
+#+BEGIN_SRC emacs-lisp
+  (use-package lolsmacs
+    :straight (:host github
+               :repo "grettke/lolsmacs"
+               :files ("*.el"))
+  )
+  (require 'lolsmacs)
+  (lolsmacs-init)
+#+END_SRC
+
+** cl
+   :PROPERTIES:
+   :ID:       6d5cb1dc-8428-4c29-aff6-13c9dbd6a576
+   :END:
+Used by some package below.
+#+BEGIN_SRC emacs-lisp
+  (require 'cl-seq)
+#+END_SRC
+* Theme
+  :PROPERTIES:
+  :ID:       81a815d6-cfca-4851-a440-4d79887be6cb
+  :END:
+Load the theme
+#+BEGIN_SRC emacs-lisp
+  (use-package modus-vivendi-theme
+   :ensure t)
+  (load-theme 'modus-vivendi t) ;; Dark theme
+#+END_SRC
+* helpful
+  :PROPERTIES:
+  :ID:       721bd336-078f-4914-b46f-c3f718542df5
+  :END:
+#+BEGIN_SRC emacs-lisp
+  (use-package helpful
+    :ensure t
+    :config
+    ;; Note that the built-in `describe-function' includes both functions
+    ;; and macros. `helpful-function' is functions only, so we provide
+    ;; `helpful-callable' as a drop-in replacement.
+    (global-set-key (kbd "C-h f") #'helpful-callable)
+
+    (global-set-key (kbd "C-h v") #'helpful-variable)
+    (global-set-key (kbd "C-h k") #'helpful-key)
+
+    ;; Lookup the current symbol at point. C-c C-d is a common keybinding
+    ;; for this in lisp modes.
+    (global-set-key (kbd "C-c C-d") #'helpful-at-point)
+
+    ;; Look up *F*unctions (excludes macros).
+    ;;
+    ;; By default, C-h F is bound to `Info-goto-emacs-command-node'. Helpful
+    ;; already links to the manual, if a function is referenced there.
+    (global-set-key (kbd "C-h F") #'helpful-function)
+
+    ;; Look up *C*ommands.
+    ;;
+    ;; By default, C-h C is bound to describe `describe-coding-system'. I
+    ;; don't find this very useful, but it's frequently useful to only
+    ;; look at interactive functions.
+    (global-set-key (kbd "C-h C") #'helpful-command)
+  )
+#+END_SRC
+* Ivy, swiper
+  :PROPERTIES:
+  :ID:       f13d136b-74a0-4813-a537-40efdb664b30
+  :END:
+Note that when searching with swiper, the following work:
+C-s C-s redo last search
+M-n ivy-next-history-element
+M-j ivy-yank-word
+#+BEGIN_SRC emacs-lisp
+  (require 'shell)
+  (use-package swiper
+   :ensure t)
+  (use-package ivy
+    :ensure t
+    :init
+    (progn
+      (ivy-mode 1)
+      (setq ivy-use-virtual-buffers t)
+      (global-set-key (kbd "C-s") 'swiper)
+      (define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
+      (define-key shell-mode-map (kbd "C-r") 'counsel-shell-history)))
+  (use-package ivy-hydra
+    :ensure t
+  )
+#+END_SRC
+* Helm
+  :PROPERTIES:
+  :ID:       1063bbed-cf80-477c-bda5-b3f5d8862e8c
+  :END:
+Use helm for completion.
+Note that the key bindings for <tab> and C-z are switched. Comment out if you do not like that.
+#+BEGIN_SRC emacs-lisp
+  (use-package helm
+   :ensure t
+   :init
+    (progn
+      (require 'helm-config)
+      (require 'helm-grep)
+      ;; To fix error at compile:
+      ;; Error (bytecomp): Forgot to expand macro with-helm-buffer in
+      ;; (with-helm-buffer helm-echo-input-in-header-line)
+      (if (version< "26.0.50" emacs-version)
+          (eval-when-compile (require 'helm-lib)))
+      (global-set-key (kbd "C-x b") 'helm-mini)
+
+      (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) ;; rebind tab to do persistent action
+      (define-key helm-map (kbd "C-i") 'helm-execute-persistent-action)   ;; make TAB work in terminal
+      (define-key helm-map (kbd "C-z")  'helm-select-action)              ;; list actions using C-z
+
+      (setq helm-candidate-number-limit 150
+            helm-split-window-in-side-p t ;; Open helm buffer inside current window, not occupy whole other window
+            helm-ff-file-name-history-use-recentf t
+            helm-ff-auto-update-initial-value t
+            helm-move-to-line-cycle-in-source t ;; Move to end or beginning of source when reaching top or bottom of source.
+            helm-buffer-skip-remote-checking t
+
+            helm-mode-fuzzy-match t
+            helm-buffers-fuzzy-matching t ;; Fuzzy matching buffer names when non-nil
+                                          ;; Useful in helm-mini that lists buffers
+            helm-M-x-fuzzy-match t
+            helm-imenu-fuzzy-match t
+            helm-lisp-fuzzy-completion t
+            ;; helm-apropos-fuzzy-match t
+            helm-buffer-skip-remote-checking t
+            helm-locate-fuzzy-match t)
+
+    (add-to-list 'helm-sources-using-default-as-input 'helm-source-man-pages)
+
+    (global-set-key (kbd "C-h b") 'helm-descbinds)
+    (global-set-key (kbd "M-x") 'helm-M-x)
+    (global-set-key (kbd "M-y") 'helm-show-kill-ring)
+    (global-set-key (kbd "C-x C-f") 'helm-find-files)
+    (global-set-key (kbd "C-c r") 'helm-recentf)
+    (global-set-key (kbd "C-h SPC") 'helm-all-mark-rings)
+    (global-set-key (kbd "C-c h o") 'helm-occur)
+
+    (global-set-key (kbd "C-c h w") 'helm-wikipedia-suggest)
+    (global-set-key (kbd "C-c h g") 'helm-google-suggest)
+
+    (global-set-key (kbd "C-c h x") 'helm-register)
+
+    (define-key 'help-command (kbd "C-f") 'helm-apropos)
+    (define-key 'help-command (kbd "r") 'helm-info-emacs)
+    (define-key 'help-command (kbd "C-l") 'helm-locate-library)
+
+    ;; use helm to list eshell history
+    (add-hook 'eshell-mode-hook
+              #'(lambda ()
+                  (define-key eshell-mode-map (kbd "M-l")  'helm-eshell-history)))
+
+    ;; Save current position to mark ring
+    (add-hook 'helm-goto-line-before-hook 'helm-save-current-pos-to-mark-ring)
+
+    ;; show minibuffer history with Helm
+    (define-key minibuffer-local-map (kbd "M-p") 'helm-minibuffer-history)
+    (define-key minibuffer-local-map (kbd "M-n") 'helm-minibuffer-history)
+
+    (define-key global-map [remap find-tag] 'helm-etags-select)
+
+    (define-key global-map [remap list-buffers] 'helm-buffers-list)
+
+    (helm-mode 1)
+
+))
+#+END_SRC
+* epg Let emacs query for gpg passwords
+  :PROPERTIES:
+  :ID:       6e1c784d-012c-4c85-a6c3-efcf4f96ffdb
+  :END:
+#+BEGIN_SRC emacs-lisp
+  (setf epg-pinentry-mode 'loopback)
+  (defun pinentry-emacs (desc prompt ok error)
+    (let ((str (read-passwd
+                (concat (replace-regexp-in-string "%22" "\""
+                                                  (replace-regexp-in-string "%0A" "\n" desc)) prompt ": "))))
+      str))
+#+END_SRC
+* exwm-randr
+  :PROPERTIES:
+  :ID:       0aabe0ee-8493-478f-a3c8-b638a35dd1f1
+  :END:
+#+BEGIN_SRC emacs-lisp
+    (use-package exwm
+     :ensure t)
+    (require 'exwm-randr)
+    (defun jw/env-list (env-string)
+      "Return list of strings in environment variable env-string.
+  nil if empty or undefined."
+      (let ((env-var (getenv env-string)))
+        (if env-var
+            (split-string env-var)
+          nil)))
+    (defun jw/env-str (env-string)
+      "Return string in environment variable env-string.
+  nil if empty or undefined."
+      (let ((env-var (getenv env-string)))
+        (if (> (length env-var) 0)
+            env-var
+          nil)))
+
+    (defun jw/build-workspace-monitor-plist (list)
+      (let (transformed-list first second (rev-list (reverse list)))
+        (while rev-list
+          (setq second (car rev-list))
+          (setq first (string-to-number (car (cdr rev-list))))
+          (setq transformed-list (cons first (cons second transformed-list)))
+          (setq rev-list (cdr (cdr rev-list)))
+          )
+        transformed-list))
+
+    (defun jw/xrandr-output-list ()
+      "Return list of connected X11 screens, according to xrandr."
+      (interactive)
+      (let* ((xrandr-output-regexp "\n\\([^ ]+\\) connected ")
+             (find-outputs
+              (lambda ()
+                (let (output-list)
+                  (call-process "/usr/bin/xrandr" nil t nil)
+                  (goto-char (point-min))
+                  (while (re-search-forward xrandr-output-regexp nil 'noerror)
+                    (setq output-list (cons (match-string 1) output-list))
+                    (forward-line))
+                  (reverse output-list))))
+             (output-list (with-temp-buffer
+                            (funcall find-outputs))))
+         output-list))
+
+    (setq jw/x11-screen-list (jw/env-list "X11_SCREEN_LIST"))
+    (setq jw/x11-screen-order-list (jw/env-list "X11_SCREEN_ORDER_LIST"))
+    (setq jw/x11-screen-mode-list (jw/env-list "X11_SCREEN_MODE_LIST"))
+    (setq jw/x11-screen-rate-list (jw/env-list "X11_SCREEN_RATE_LIST"))
+    (setq jw/x11-screen-disabled-list (jw/env-list "X11_SCREEN_DISABLED_LIST"))
+    (setq jw/exwm-workspace-list (jw/env-list "EXWM_WORKSPACE_LIST"))
+    (setq jw/x11-screen-preferred (jw/env-str "X11_SCREEN_PREFERRED"))
+    (setq jw/x11-display-dpi (jw/env-str "X11_DISPLAY_DPI"))
+    (let ((env-var (getenv "X11_SCREEN_USE_ALL_AVAILABLE")))
+      (setq jw/x11-screen-use-all-available
+            (if (and (> (length env-var) 0) (string= "yes" env-var))
+                t
+              nil)))
+
+    (setq exwm-randr-workspace-monitor-plist (jw/build-workspace-monitor-plist jw/exwm-workspace-list))
+
+    (defun jw/exwm-change-screen-hook ()
+      "Execute xrandr to select and position available screens according to X11_SCREEN_* environment variables."
+      (let* ((output-list (jw/xrandr-output-list))
+             (available-screens (seq-intersection jw/x11-screen-list output-list))
+             (available-order-screens (seq-intersection jw/x11-screen-order-list output-list))
+             ;; See "--auto" in xrandr(1) and https://github.com/ch11ng/exwm/issues/529.
+             (unavailable-screens (seq-difference jw/x11-screen-list output-list))
+             (available-disabled-screens (seq-intersection jw/x11-screen-disabled-list output-list))
+             (available-screen-modes
+              (let (mode-list
+                    mode screen
+                    (x-screen-list jw/x11-screen-list)
+                    (x-mode-list jw/x11-screen-mode-list))
+                (while x-screen-list
+                  (setq screen (car x-screen-list))
+                  (setq x-screen-list (cdr x-screen-list))
+                  (setq mode (car x-mode-list))
+                  (setq x-mode-list (cdr x-mode-list))
+                  (if (seq-contains available-screens screen)
+                      (setq mode-list (cons mode mode-list))))
+                (reverse mode-list)))
+             (available-screen-rates
+              (let (rate-list
+                    rate screen
+                    (x-screen-list jw/x11-screen-list)
+                    (x-rate-list jw/x11-screen-rate-list))
+                (while x-screen-list
+                  (setq screen (car x-screen-list))
+                  (setq x-screen-list (cdr x-screen-list))
+                  (setq rate (car x-rate-list))
+                  (setq x-rate-list (cdr x-rate-list))
+                  (if (seq-contains available-screens screen)
+                      (setq rate-list (cons rate rate-list))))
+                (reverse rate-list))))
+        (if available-screens
+            ;; Start building xrandr command line
+            (let* ((x-primary-screen
+                    (if (and jw/x11-screen-preferred (seq-contains available-screens jw/x11-screen-preferred))
+                        jw/x11-screen-preferred
+                      (car available-screens)))
+                   (screen-pos (seq-position available-screens x-primary-screen))
+                   (x-primary-mode (elt available-screen-modes screen-pos))
+                   (x-primary-rate (elt available-screen-rates screen-pos))
+                   (xrandr-dpi-args
+                    (if jw/x11-display-dpi
+                        (list jw/x11-display-dpi "--dpi")))
+                   (xrandr-primary-args (list x-primary-rate "--rate" x-primary-mode "--mode" "--primary" x-primary-screen "--output"))
+                   screen
+                   disabled-list
+                   (xrandr-disabled-args
+                    (progn
+                      (while available-disabled-screens
+                        (setq screen (car available-disabled-screens))
+                        (setq available-disabled-screens (cdr available-disabled-screens))
+                        (setq disabled-list (cons "--output" disabled-list))
+                        (setq disabled-list (cons screen disabled-list))
+                        (setq disabled-list (cons "--off" disabled-list)))
+                      disabled-list))
+                   (unavailable-screen-list unavailable-screens)
+                   u-s-list
+                   (xrandr-unavailable-screen-args
+                    (progn
+                      (while unavailable-screen-list
+                        (setq screen (car unavailable-screen-list))
+                        (setq unavailable-screen-list (cdr unavailable-screen-list))
+                        (setq u-s-list (cons "--output" u-s-list))
+                        (setq u-s-list (cons screen u-s-list))
+                        ;; (setq u-s-list (cons "--auto" u-s-list))
+                        (setq u-s-list (cons "--off" u-s-list)))
+                      u-s-list))
+                   (screen-list available-screens)
+                   rest-list
+                   (xrandr-rest-available-screen-args
+                    (if jw/x11-screen-use-all-available
+                         ;; Add remaining available screens, except the primary screen
+                         (progn
+                            (while screen-list
+                               (setq screen (car screen-list))
+                               (setq screen-list (cdr screen-list))
+                               (if (not (string= screen x-primary-screen))
+                                   (progn
+                                     (setq rest-list (cons "--output" rest-list))
+                                     (setq rest-list (cons screen rest-list))
+                                     (setq rest-list (cons "--mode" rest-list))
+                                     (setq rest-list (cons (elt available-screen-modes (seq-position available-screens screen)) rest-list))
+                                     (setq rest-list (cons "--rate" rest-list))
+                                     (setq rest-list (cons (elt available-screen-rates (seq-position available-screens screen)) rest-list)))))
+                            rest-list)
+                         ;; Disable remaining available screens, except the primary screen
+                         (progn
+                            (while screen-list
+                               (setq screen (car screen-list))
+                               (setq screen-list (cdr screen-list))
+                               (if (not (string= screen x-primary-screen))
+                                   (progn
+                                     (setq rest-list (cons "--output" rest-list))
+                                     (setq rest-list (cons screen rest-list))
+                                     (setq rest-list (cons "--off" rest-list)))))
+                            rest-list)))
+                   (screen-order-list available-order-screens)
+                   order-list
+                   left-screen
+                   (xrandr-screen-order-args
+                    (if (and jw/x11-screen-use-all-available
+                             (> (length screen-order-list) 1))
+                        (progn
+                           (setq left-screen (car screen-order-list))
+                           (setq screen-order-list (cdr screen-order-list))
+                           (while screen-order-list
+                              (setq screen (car screen-order-list))
+                              (setq screen-order-list (cdr screen-order-list))
+                              (setq order-list (cons "--output" order-list))
+                              (setq order-list (cons screen order-list))
+                              (setq order-list (cons "--right-of" order-list))
+                              (setq order-list (cons left-screen order-list))
+                              (setq left-screen screen))
+                           (reverse order-list))))
+                   (xrandr-args (reverse (append xrandr-rest-available-screen-args xrandr-unavailable-screen-args
+                                                 xrandr-disabled-args xrandr-primary-args xrandr-dpi-args))))
+               (progn
+                 (setq jw/debug-output-list output-list)
+                 (setq jw/debug-xrandr-args xrandr-args)
+                 (setq jw/debug-xrandr-order-args xrandr-screen-order-args)
+                 (apply #'call-process
+                        "/usr/bin/xrandr" nil nil nil
+                        xrandr-args)
+                 (apply #'call-process
+                        "/usr/bin/xrandr" nil nil nil
+                        xrandr-screen-order-args))
+            )
+          )
+        )
+      )
+
+    (add-hook 'exwm-randr-screen-change-hook 'jw/exwm-change-screen-hook)
+    (exwm-randr-enable)
+#+END_SRC
+* exwm-config
+  :PROPERTIES:
+  :ID:       0f7da169-9bb9-4bad-a7b2-6c6a5db9b6ce
+  :END:
+#+BEGIN_SRC emacs-lisp
+  (require 'ido)
+  (use-package windower
+   :ensure t)
+  (require 'browse-url)
+  (require 'exwm-manage)
+
+  (defun ambrevar/call-process-to-string (program &rest args)
+    "Call PROGRAM with ARGS and return output.
+  See also `process-lines'."
+    ;; Or equivalently:
+    ;; (with-temp-buffer
+    ;;   (apply 'process-file program nil t nil args)
+    ;;   (buffer-string))
+    (with-output-to-string
+      (with-current-buffer standard-output
+        (apply 'process-file program nil t nil args))))
+
+  (defun jw/xmodmap ()
+    "Execute xmodmap"
+    (progn
+      (remove-hook 'exwm-manage-finish-hook 'jw/xmodmap)
+      (ambrevar/call-process-to-string "/usr/bin/xmodmap" "/home/jw/.Xmodmap.exwm")))
+
+  (setq browse-url-generic-program 
+        (or
+         (executable-find (or (getenv "BROWSER") ""))
+         (when (executable-find "xdg-mime")
+           (let ((desktop-browser (ambrevar/call-process-to-string "xdg-mime" "query" "default" "text/html")))
+             (substring desktop-browser 0 (string-match "\\.desktop" desktop-browser))))
+         (executable-find browse-url-chrome-program)))
+
+  (defun my-exwm-config-setup ()
+    "My modified configuration for EXWM. Based on exwm-config.el"
+    ;; Set the initial workspace number.
+    (unless (get 'exwm-workspace-number 'saved-value)
+      (setq exwm-workspace-number 4))
+    ;; Make class name the buffer name
+    (add-hook 'exwm-update-class-hook
+              (lambda ()
+              (exwm-workspace-rename-buffer exwm-class-name)))
+    ;; Global keybindings. 0-9 bcDfFgGhHijJkKlLmoOQrRwW !@#$%^&*() tab f2 backspace
+    (unless (get 'exwm-input-global-keys 'saved-value)
+      (setq exwm-input-global-keys
+            `(
+              ;; (,(kbd "s-b") . exwm-workspace-switch-to-buffer)
+              (,(kbd "s-b") . helm-mini) ;; list and select buffers
+              (,(kbd "s-c") . helm-resume) ;; Continue in latest helm selection buffer
+              (,(kbd "s-G") . helm-locate) ;; locate file, based in Linux locate command
+              ;; (,(kbd "s-g") . mu-helm-file-search) ;; Grep search in files, see https://www.manueluberti.eu/emacs/2020/02/22/ripgrepping-with-helm/
+              ;; (,(kbd "s-g") . ambrevar/helm-grep-git-or-ag) ;; Grep search in files, see https://gitlab.com/ambrevar/dotfiles/-/blob/master/.emacs.d/lisp/init-helm.el
+              (,(kbd "s-g") . helm-do-grep-ag) ;; Grep search in files
+              (,(kbd "s-r") . helm-run-external-command) ;; Start an application, such as google-chrome
+              (,(kbd "s-W") . helm-exwm-switch-browser) ;; Switch to some browser windows
+              (,(kbd "s-m") . (lambda () ;; Toggle display of mode-line and minibuffer, in an EXWM window
+                     (interactive)
+                     (exwm-layout-toggle-mode-line)
+                     (exwm-workspace-toggle-minibuffer)))
+              (,(kbd "s-i") . exwm-input-toggle-keyboard) ;; Toggle between "line-mode" and "char-mode" in an EXWM window
+              ;; 's-r': Reset (to line-mode).
+              (,(kbd "s-R") . exwm-reset) ;; Try to reset EXWM to a sane mode. Panic key
+              ;; Interactively select, and switch to, a workspace. Only works in non EXWM windows.
+              (,(kbd "s-w") . exwm-workspace-switch)
+              ;; 's-a': Launch application.
+              ;; (,(kbd "s-a") . (lambda (command)
+              ;;              (interactive (list (read-shell-command "$ ")))
+              ;;              (start-process-shell-command command nil command)))
+              ;; 's-N': Switch to a certain workspace.
+              ,@(mapcar (lambda (i)
+                          `(,(kbd (format "s-%d" i)) .
+                            (lambda ()
+                              (interactive)
+                              (exwm-workspace-switch-create ,i))))
+                        (number-sequence 0 9))
+              ;; 'S-s-N': Move window to, and switch to, a certain workspace.
+              ,@(cl-mapcar (lambda (c n)
+                          `(,(kbd (format "s-%c" c)) .
+                            (lambda ()
+                              (interactive)
+                              (exwm-workspace-move-window ,n)
+                              (exwm-workspace-switch ,n))))
+                        '(?\) ?! ?@ ?# ?$ ?% ?^ ?& ?* ?\()
+                        ;; '(?\= ?! ?\" ?# ?¤ ?% ?& ?/ ?\( ?\))
+                        (number-sequence 0 9))
+
+              ;; Bind "s-<f2>" to "slock", a simple X display locker.
+              (,(kbd "s-<f2>") . (lambda ()
+                          (interactive)
+                          (start-process "" nil "/usr/bin/slock")))
+              (,(kbd "s-h") . windmove-left)  ;; Move to window to the left of current one. Uses universal arg
+              (,(kbd "s-j") . windmove-down)  ;; Move to window below current one. Uses universal arg
+              (,(kbd "s-k") . windmove-up)    ;; Move to window above current one. Uses universal arg
+              (,(kbd "s-l") . windmove-right) ;; Move to window to the right of current one. Uses universal arg
+              ;; (,(kbd "s-f") . find-file)
+              (,(kbd "s-f") . helm-find-files)
+              (,(kbd "s-<tab>") . windower-switch-to-last-buffer) ;; Switch to last open buffer in current window
+              (,(kbd "s-o") . windower-toggle-single) ;; Toggle between multiple windows, and a single window
+              (,(kbd "s-O") . windower-toggle-split)  ;; Toggle between vertical and horizontal split. Only works with exactly two windows.
+              (,(kbd "s-H") . windower-swap-left)  ;; Swap current window with the window to the left
+              (,(kbd "s-J") . windower-swap-below) ;; Swap current window with the window below
+              (,(kbd "s-K") . windower-swap-above) ;; Swap current window with the window above
+              (,(kbd "s-L") . windower-swap-right) ;; Swap current window with the window to the right
+              (,(kbd "s-F") . exwm-floating-toggle-floating) ;; Toggle the current window between floating and non-floating states
+              (,(kbd "s-Q") . exwm-layout-toggle-fullscreen) ;; Toggle fullscreen mode, when in an EXWM window.
+              (,(kbd "s-D") . kill-this-buffer)
+              (,(kbd "s-<backspace>") . kill-this-buffer)
+     )))
+    ;; Line-editing shortcuts: abBcdefFknpqsvwx
+    (unless (get 'exwm-input-simulation-keys 'saved-value)
+      (setq exwm-input-simulation-keys
+            `((,(kbd "H-b") . ,(kbd "<left>"))
+              (,(kbd "H-B") . ,(kbd "C-<left>"))
+              (,(kbd "H-f") . ,(kbd "<right>"))
+              (,(kbd "H-F") . ,(kbd "C-<right>"))
+              (,(kbd "H-p") . ,(kbd "<up>"))
+              (,(kbd "H-n") . ,(kbd "<down>"))
+              (,(kbd "H-a") . ,(kbd "<home>"))
+              (,(kbd "H-e") . ,(kbd "<end>"))
+              ;; q and w are convenient if Caps Lock key is Hyper key
+              (,(kbd "H-q") . ,(kbd "<prior>"))
+              (,(kbd "H-w") . ,(kbd "<next>"))
+              (,(kbd "H-d") . ,(kbd "<delete>"))
+              (,(kbd "H-k") . ,(kbd "S-<end> <delete>"))
+              ;; cut/paste.
+              (,(kbd "H-x") . ,(kbd "C-x"))
+              (,(kbd "H-c") . ,(kbd "C-c"))
+              (,(kbd "H-v") . ,(kbd "C-v"))
+              ;; search
+              (,(kbd "H-s") . ,(kbd "C-f"))
+     )))
+    ;; Default is save-buffers-kill-terminal, but that may kill daemon before its finished
+    (global-set-key (kbd "C-x C-c") 'save-buffers-kill-emacs)
+    (add-hook 'exwm-update-title-hook 'ambrevar/exwm-rename-buffer-to-title)
+    ;; Ensure that EXWM input mode is displayed in mode line
+    (add-hook 'exwm-input--input-mode-change-hook
+              'force-mode-line-update)
+    ;; Called once, to configure X11 keyboard layout
+    (add-hook 'exwm-manage-finish-hook
+              'jw/xmodmap t)
+    ;; Allow resizing of non-floating windows, with mouse.
+    (setq window-divider-default-bottom-width 2
+          window-divider-default-right-width 2)
+    (window-divider-mode)
+    ;; Allow switching to EXWM buffers not belonging to current workspace.
+    ;; This behaviour takes some getting used to, I guess thats why its not default
+    (setq exwm-layout-show-all-buffers t)
+    ;; Configure Ido
+    (my-exwm-config-ido)
+    ;; Other configurations
+    (my-exwm-config-misc))
+
+  ;; This is copied from exwm-config.el
+  (defun my-exwm-config--fix/ido-buffer-window-other-frame ()
+    "Fix `ido-buffer-window-other-frame'."
+    (defalias 'exwm-config-ido-buffer-window-other-frame
+      (symbol-function #'ido-buffer-window-other-frame))
+    (defun ido-buffer-window-other-frame (buffer)
+      "This is a version redefined by EXWM.
+
+  You can find the original one at `exwm-config-ido-buffer-window-other-frame'."
+      (with-current-buffer (window-buffer (selected-window))
+        (if (and (derived-mode-p 'exwm-mode)
+                 exwm--floating-frame)
+            ;; Switch from a floating frame.
+            (with-current-buffer buffer
+              (if (and (derived-mode-p 'exwm-mode)
+                       exwm--floating-frame
+                       (eq exwm--frame exwm-workspace--current))
+                  ;; Switch to another floating frame.
+                  (frame-root-window exwm--floating-frame)
+                ;; Do not switch if the buffer is not on the current workspace.
+                (or (get-buffer-window buffer exwm-workspace--current)
+                    (selected-window))))
+          (with-current-buffer buffer
+            (when (derived-mode-p 'exwm-mode)
+              (if (eq exwm--frame exwm-workspace--current)
+                  (when exwm--floating-frame
+                    ;; Switch to a floating frame on the current workspace.
+                    (frame-selected-window exwm--floating-frame))
+                ;; Do not switch to exwm-mode buffers on other workspace (which
+                ;; won't work unless `exwm-layout-show-all-buffers' is set)
+                (unless exwm-layout-show-all-buffers
+                  (selected-window)))))))))
+
+  (defun my-exwm-config-ido ()
+    "Configure Ido to work with EXWM."
+    ;; (ido-mode 1)
+    (add-hook 'exwm-init-hook #'my-exwm-config--fix/ido-buffer-window-other-frame))
+
+  (defun my-exwm-config-misc ()
+    "Other configurations."
+    ;; Make more room
+    (menu-bar-mode -1)
+    (tool-bar-mode -1)
+    (scroll-bar-mode -1))
+
+  ;; Rename buffer to window title.
+  (defun ambrevar/exwm-rename-buffer-to-title () (exwm-workspace-rename-buffer exwm-title))
+
+  (my-exwm-config-setup) ;; Does not start X11 or EXWM. Start should be done from commandline.
+#+END_SRC
+* telephone-line
+  :PROPERTIES:
+  :ID:       1fd4aca5-d623-49d5-9be4-54c0e96e5daf
+  :END:
+#+BEGIN_SRC emacs-lisp
+  (use-package telephone-line
+   :ensure t)
+  (require 'telephone-line)
+  (defun ambrevar/bottom-right-window-p ()
+    "Determines whether the last (i.e. bottom-right) window of the
+    active frame is showing the buffer in which this function is
+    executed."
+    (let* ((frame (selected-frame))
+           (right-windows (window-at-side-list frame 'right))
+           (bottom-windows (window-at-side-list frame 'bottom))
+           (last-window (car (seq-intersection right-windows bottom-windows))))
+      (eq (current-buffer) (window-buffer last-window))))
+
+  (defun jw/telephone-misc-if-exwm-or-last-window ()
+    "Renders the mode-line-misc-info string for display in the
+    mode-line if the currently active window is the last one in the
+    frame, or an exwm window.
+
+    The idea is to not display information like the current time,
+    load, battery levels on all buffers.
+    And to display input mode only in exwm windows."
+
+    (when (or (ambrevar/bottom-right-window-p)
+              exwm-window-type)
+      (telephone-line-raw mode-line-misc-info t))
+  )
+
+  (defun jw/input-mode-str ()
+    "Return string representing input mode, if window is of type EXWM"
+    (if exwm-window-type
+        (if (eq exwm--input-mode 'line-mode)
+          (format "l")
+          (format "c"))
+      (format "")))
+
+  (defun jw/workspace-index ()
+    "Return string representing current EXWM workspace index"
+    (if (ambrevar/bottom-right-window-p)
+      (format "[%s]" (exwm-workspace--position (selected-frame)))
+      (format "")))
+
+  (defun jw/format-workspace-index-and-input-mode ()
+    "Return string [workspace_index]input-mode depending on exwm-window or bottom-right window"
+    (format "%s%s" (jw/workspace-index) (jw/input-mode-str))
+  )
+
+  (defun ambrevar/telephone-line-setup ()
+    (telephone-line-defsegment telephone-line-last-window-segment ()
+      (jw/telephone-misc-if-exwm-or-last-window))
+
+    ;; Display the current EXWM workspace index in the mode-line
+    (telephone-line-defsegment telephone-line-exwm-workspace-index ()
+      (jw/format-workspace-index-and-input-mode))
+
+    ;; Define a highlight font for ~ important ~ information in the last
+    ;; window.
+    (defface special-highlight '((t (:foreground "white" :background "#5f627f"))) "")
+    (add-to-list 'telephone-line-faces
+                 '(highlight . (special-highlight . special-highlight)))
+
+    (setq telephone-line-lhs
+          '((nil . (telephone-line-position-segment))
+            (accent . (telephone-line-buffer-segment))))
+
+    (setq telephone-line-rhs
+          '((accent . (telephone-line-major-mode-segment))
+            (nil . (telephone-line-last-window-segment
+                    telephone-line-exwm-workspace-index))
+            ))
+
+    (setq telephone-line-primary-left-separator 'telephone-line-tan-left
+          telephone-line-primary-right-separator 'telephone-line-tan-right
+          telephone-line-secondary-left-separator 'telephone-line-tan-hollow-left
+          telephone-line-secondary-right-separator 'telephone-line-tan-hollow-right)
+
+    (telephone-line-mode 1))
+
+  (ambrevar/telephone-line-setup)
+#+END_SRC
+
+* helm-exwm
+  :PROPERTIES:
+  :ID:       941ba943-b27f-47dd-b0fd-1fa655b3928a
+  :END:
+#+BEGIN_SRC emacs-lisp
+  (use-package helm-exwm
+    :ensure t
+    :config
+    (setq helm-exwm-emacs-buffers-source (helm-exwm-build-emacs-buffers-source))
+    (setq helm-exwm-source (helm-exwm-build-source))
+    (setq helm-mini-default-sources `(helm-exwm-emacs-buffers-source
+                                      helm-exwm-source
+                                      helm-source-recentf)))
+  (require 'helm-exwm)
+#+END_SRC
+
+* desktop
+  :PROPERTIES:
+  :ID:       b72ada4e-7b5f-4c63-b04e-3a2feec8222c
+  :END:
+When saving emacs desktop, also save Helm find-file-history.
+That way we also save dired paths.
+#+BEGIN_SRC emacs-lisp
+  (add-to-list 'desktop-globals-to-save 'helm-ff-history)
+#+END_SRC
