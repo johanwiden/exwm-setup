@@ -627,6 +627,15 @@ configured as "--off".
 
 If more than one screen is to be used, then a final xrandr command is executed 
 to position those screens relative to each other.
+* Emacs init loads files from melpa and github
+  :PROPERTIES:
+  :ID:       ac8b8ba0-5f01-4ded-a283-1b825a03adbb
+  :END:
+The provided emacs init files loads the following:
+- org mode from the org repository
+- The [[https://github.com/raxod502/straight.el][straight]] package manager is loaded from its github repository
+- The straight package manager is used to load [[https://github.com/grettke/lolsmacs][lolsmacs]] from its github repository
+- a number of packages from melpa
 * How to try the provided configuration
   :PROPERTIES:
   :ID:       56d63cc3-3fe6-4ae8-a125-02fc427b8877
