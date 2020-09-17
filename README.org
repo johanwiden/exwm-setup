@@ -62,6 +62,11 @@ Features:
 - Hide the mouse pointer when not in use.
 - Some tips about how to get a more pleasant interaction with Google Chrome.
 
+If you read this document on github, then internal links in the document
+will not work, you will get a 404. It is unfortunately a longstanding problem
+that github and gitlab do not handle org mode internal links.
+Use the Table of Contents instead.
+
 Bugs and deficiencies: See a separate section [[Bugs and deficiencies][below]].
 
 When you look at the code, remember:
@@ -601,7 +606,7 @@ This elisp code, defined in the emacs init file, executes in EXWM when a screen
 is plugged in or unplugged, to configure the X11 screens according to 
 [[environment variables X11_* and EXWM_*]]
 
-The semantics of the code is very similar to that in [[~/exwm_xrandr.bash]] except 
+The semantics of the code is very similar to that in [[script ~/exwm_xrandr.bash]] except 
 that xrandr is also provided with arguments to explicitly turn "--off" any
 unavailable screen, if it is part of X11_SCREEN_LIST. The xrandr argument 
 "--auto" could have been used, but "--off" seems to work ok. This is necessary, 
@@ -621,7 +626,7 @@ are configured as "--off". All unavailable screens in X11_SCREEN_LIST are
 configured as "--off".
 
 If more than one screen is to be used, then a final xrandr command is executed 
-to position these screens relative to each other.
+to position those screens relative to each other.
 * How to try the provided configuration
   :PROPERTIES:
   :ID:       56d63cc3-3fe6-4ae8-a125-02fc427b8877
@@ -639,8 +644,9 @@ Then either:
 - Modify your ,profile, adding what is in .profile
   Assuming that no X11 session is running, login to the tty, by pressing C-M-<F5> from the login screen.
 - Or, assuming no X11 session is running, login to a tty, and execute:
+#+BEGIN_SRC shell
   gpg-connect-agent /bye
   SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
   export SSH_AUTH_SOCK
   /usr/bin/startx ~/.xinitrc.exwm >/tmp/startx.log 2>&1
-
+#+END_SRC
