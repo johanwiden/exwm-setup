@@ -275,7 +275,7 @@ described later:
   previously started some other window manager such as Gnome or KDE, and saved
   that window managers configuration to a certain file. xsettingsd will read
   the file and report the settings to the application running under EXWM.
-- Run xset to configure screen blanking, i.e. that you displays will turn off
+- Run xset to configure screen blanking, i.e. that your displays will turn off
   when they have been idle for a while.
 - Optionally set keyboard delay and repeat rate. I like the default values
   provided by Ubuntu.
@@ -338,7 +338,7 @@ to show the current modifier map.
    :ID:       69d5b576-b8bf-4227-a4a7-cd01728f0c97
    :END:
 This is an overview of the EXWM configuration. More detailed documentation is
-in [[./emacs.d/config.org]]
+in [[./.emacs.d/config.org]]
 
 *** Support for encryption (gpg)
     :PROPERTIES:
