@@ -26,7 +26,7 @@
       - [[#a-tip-about-monitoring-memory-cpu-etc][A tip about monitoring memory, cpu etc]]
 - [[#x11-screen-and-workspace-configuration][X11 screen and workspace configuration]]
   - [[#environment-variables-x11_-and-exwm_][environment variables X11_* and EXWM_*]]
-  - [[#exwm_xrandrbash][~/exwm_xrandr.bash]]
+  - [[#script-exwm_xrandrbash][script ~/exwm_xrandr.bash]]
   - [[#jwexwm-change-screen-hook][jw/exwm-change-screen-hook()]]
 - [[#how-to-try-the-provided-configuration][How to try the provided configuration]]
 :END:
@@ -62,7 +62,7 @@ Features:
 - Hide the mouse pointer when not in use.
 - Some tips about how to get a more pleasant interaction with Google Chrome.
 
-Bugs and deficiencies: see a separate section below.
+Bugs and deficiencies: See a separate section [[Bugs and deficiencies][below]].
 
 When you look at the code, remember:
 - This is an example of how it can be done. The mechanisms and the whys are
@@ -95,7 +95,7 @@ My experience with EXWM is that it works well, it just needs a good
 configuration. And that is the main deficiency at present, the documentation
 for how to do a complete  setup is missing. If you have a setup you feel happy
 with, which might be of help for other users, why not publish a guide?
-For example, how a about a more complete guide for EXWM under macOS, beyond
+For example, how about a more complete guide for EXWM under macOS, beyond
 what is published [[https://github.com/ch11ng/exwm/wiki/Installation-on-macOS][here]]. Or under LXDE or Gnome, or with a composite manager.
 But please remember: a guide should not just explain how to do something,
 but also why it is done.
@@ -264,7 +264,7 @@ described later:
   - Should all listed screens be used, or just one?
   - What Dots Per Inch (X11 DPI) should be used?
   Actually this is a bit more involved, because screens can be unplugged, see
-  the dedicated section below: [[*X11 screen and workspace configuration]]
+  the dedicated section below: [[X11 screen and workspace configuration]]
 - Run script, [[./exwm_xrandr.bash][~/exwm_xrandr.bash]] to execute xrandr according to the preceding
   configuration.
   This script first queries xrandr to see which screens are actually available,
@@ -400,7 +400,7 @@ by the "BROWSER" environment variable, or it is defined via xdg-mime.
 The following code changes EXWM buffer names to be much more human readable.
 For example, the buffer for a google-chrome window, will get its name from the 
 title of the currently selected tab in that window. I really like this.
-Also see [[*Helm exwm specific configuration]].
+Also see [[Helm exwm specific configuration]].
 
 #+BEGIN_SRC emacs-lisp
   ;; Make class name the buffer name
@@ -470,7 +470,7 @@ on the internet. It uses the emacs package [[https://github.com/dbordak/telephon
 are easily achieved with any mode line package.
 
 Note that a hook to redisplay the modeline is set 
-in [[*exwm proper configuration]].
+in [[exwm proper configuration]].
 
 **** Helm exwm specific configuration
      :PROPERTIES:
@@ -481,7 +481,7 @@ EXWM buffers that do not belong to the current workspace, are listed with an
 indent.
 
 By default one can not switch to EXWM buffers belonging to other workspaces.
-[[*exwm proper configuration]] sets variable exwm-layout-show-all-buffers to t, 
+[[exwm proper configuration]] sets variable exwm-layout-show-all-buffers to t, 
 thus allowing such switching. Selecting an EXWM buffer that is currently 
 displaying in another workspace, results in somewhat unintuitive behaviour. 
 But selecting non displaying buffers works OK.
@@ -527,8 +527,8 @@ This provides resource monitoring, in the terminal status bar.
    :END:
 An overview of:
 - the environment variables X11_* and EXWM_* defined in .xinitrc.exwm
-- the script [[*~/exwm_xrandr.bash]] (called from [[*.xinitrc.exwm]])
-- the [[*jw/exwm-change-screen-hook()]]  elisp code in the emacs init file.
+- the [[script ~/exwm_xrandr.bash]] (called from [[.xinitrc.exwm]])
+- the [[jw/exwm-change-screen-hook()]]  elisp code in the emacs init file.
 
 The configuration is completely determined by the variables X11_* and EXWM_*,
 and the screen status reported by xrandr.
@@ -572,12 +572,12 @@ export EXWM_WORKSPACE_LIST="1 eDP-1 3 eDP-1"
 #export EXWM_WORKSPACE_LIST="1 DP-3 3 DP-3"
 #+END_SRC
 
-** ~/exwm_xrandr.bash
+** script ~/exwm_xrandr.bash
    :PROPERTIES:
    :ID:       83fac1f7-3b4b-4d10-b693-54a61fa2c182
    :END:
 This script, [[./exwm_xrandr.bash]], executes xrandr before the start of EXWM, to 
-configure the X11 screens according to [[*environment variables X11_* and EXWM_*]]
+configure the X11 screens according to [[environment variables X11_* and EXWM_*]]
 
 First xrandr is executed without arguments, to report the current status of 
 the X11 screens.
@@ -599,9 +599,9 @@ to position these screens relative to each other.
    :END:
 This elisp code, defined in the emacs init file, executes in EXWM when a screen 
 is plugged in or unplugged, to configure the X11 screens according to 
-[[*environment variables X11_* and EXWM_*]]
+[[environment variables X11_* and EXWM_*]]
 
-The semantics of the code is very similar to that in [[*~/exwm_xrandr.bash]] except 
+The semantics of the code is very similar to that in [[~/exwm_xrandr.bash]] except 
 that xrandr is also provided with arguments to explicitly turn "--off" any
 unavailable screen, if it is part of X11_SCREEN_LIST. The xrandr argument 
 "--auto" could have been used, but "--off" seems to work ok. This is necessary, 
