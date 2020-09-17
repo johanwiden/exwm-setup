@@ -533,9 +533,10 @@ Note that the key bindings for <tab> and C-z are switched. Comment out if you do
                  (apply #'call-process
                         "/usr/bin/xrandr" nil nil nil
                         xrandr-args)
-                 (apply #'call-process
-                        "/usr/bin/xrandr" nil nil nil
-                        xrandr-screen-order-args))
+                 (if xrandr-screen-order-args
+                     (apply #'call-process
+                            "/usr/bin/xrandr" nil nil nil
+                            xrandr-screen-order-args)))
             )
           )
         )
