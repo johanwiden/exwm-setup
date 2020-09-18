@@ -644,7 +644,9 @@ The provided emacs init files loads the following:
   :END:
 Copy .Xmodmap.exwm, .xinitrc.exwm, exwm_xrandr.bash to your home directory.
 
-Copy .emacs.d and rename it to say ~/exwm-setup
+Configure the X11_SCREEN_* and EXWM_WORKSPACE_LIST environment variables in .xinitrc.exwm.
+
+Copy .emacs.d, renaming it to say ~/exwm-setup
 
 Assuming that your current emacs directory is ~/.emacs.d do:
 - mv .emacs.d my_emacs.d
