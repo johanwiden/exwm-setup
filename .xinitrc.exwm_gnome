@@ -1,0 +1,11 @@
+#!/bin/bash
+. ~/exwm_screen_layout
+~/exwm_xrandr.bash
+
+# Try to control screen blanking
+xset s off dpms 1200 1400 1600
+
+# If Emacs is started in server mode, `emacsclient` is a convenient way to
+# edit files in place (used by e.g. `git commit`).
+export VISUAL=emacsclient
+export EDITOR="$VISUAL"

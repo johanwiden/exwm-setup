@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# https://wiki.archlinux.org/index.php/multihead
+# The current version of exwm (0.23) uses only one X11 display. All X11 screens (what xrandr calls "output") are attached
+# to that display, so X11 considers all screens to have the same Dots-Per-Inch (DPI).
+# "xrandr --dpi" sets DPI for an X11 display, not for just a screen.
+# "xrandr --fbmm" is also per display, not for just a screen.
+# This implies that if we want a certain font size to have similar physical size on each screen, then we need to
+# set the xrandr --mode on each screen to a similar physical DPI.
+# I have two monitors, one that can achieve a physical DPI of up to 246 (call that HiDPI),
+# and one that can achieve a physical DPI of up to 106.
+# So in case I want say emacs default font to display similarly on both monitors, then I have to set a low resolution mode
+# on the screen attached to the HiDPI monitor.
+
+# X11 screens (xrandr graphics outputs) I want to use. Names and values are from the output of /usr/bin/xrandr
+# They can be ordered in any way you want. The leftmost available screen will be primary, unless overridden
+# by X11_SCREEN_PREFERRED and that screen is available.
+# The primary screen is the default screen used for EXWM workspaces.
+# It will also be sorted first in Xinerama and RANDR geometry requests.
+export X11_SCREEN_LIST="eDP-1 DP-3"
+# xrandr --mode for each screen in X11_SCREEN_LIST
+export X11_SCREEN_MODE_LIST="1680x1050 3840x1600"
+# xrandr --rate for each screen in X11_SCREEN_LIST
+export X11_SCREEN_RATE_LIST="59.95 59.99"
+# How screens are arranged from left to right. Vertical order, and "--same-as" not yet implemented.
+export X11_SCREEN_ORDER_LIST="DP-3 eDP-1"
+# X11 screens (graphics outputs) that should always be explicitly turned off, if available.
+export X11_SCREEN_DISABLED_LIST="DP-2"
+# Primary X11 screen, if available
+export X11_SCREEN_PREFERRED="DP-3"
+#export X11_SCREEN_PREFERRED="eDP-1"
+# If X11_SCREEN_USE_ALL_AVAILABLE="yes" then use all available screens in X11_SCREEN_LIST:
+# - X11_SCREEN_PREFERRED is primary, if available
+# - If X11_SCREEN_PREFERRED is unavailable, primary is first available screen in X11_SCREEN_LIST.
+# Otherwise use only one:
+# - X11_SCREEN_PREFERRED if available
+# - If X11_SCREEN_PREFERRED is unavailable then use first available screen in X11_SCREEN_LIST.
+export X11_SCREEN_USE_ALL_AVAILABLE="yes"
+#export X11_SCREEN_USE_ALL_AVAILABLE="no"
+# Argument value for "xrandr --dpi", i.e. Dots Per Inch. This is for the X11 DISPLAY, i.e. used for all screens.
+export X11_DISPLAY_DPI=106
+# List of pairs "workspace-number screen"
+# Used to construct exwm-randr-workspace-monitor-plist in emacs.
+# If a screen in this list is unavailable, the workspace will be mapped to the primary screen.
+export EXWM_WORKSPACE_LIST="1 eDP-1 3 eDP-1"
+#export EXWM_WORKSPACE_LIST="1 DP-3 3 DP-3"

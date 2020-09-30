@@ -32,6 +32,24 @@
 - [[#how-to-try-the-provided-configuration][How to try the provided configuration]]
 :END:
 
+- [[#introduction][Introduction]]
+- [[#why-use-exwm-will-it-fit-my-workflow][Why use EXWM? Will it fit my workflow?]]
+- [[#bugs-and-deficiencies][Bugs and deficiencies]]
+- [[#overview-of-the-setup][Overview of the setup]]
+  - [[#log-in-on-a-tty-and-run-startx-from-profile][Log in on a tty and run startx from .profile]]
+  - [[#xinitrcexwm][.xinitrc.exwm]]
+  - [[#xinitrcexwm_gnome][.xinitrc.exwm_gnome]]
+  - [[#exwm_screen_layout][exwm_screen_layout]]
+  - [[#xmodmapexwm][.Xmodmap.exwm]]
+  - [[#exwm-configuration-in-the-emacs-init-file][EXWM configuration in the emacs init file]]
+- [[#x11-screen-and-workspace-configuration][X11 screen and workspace configuration]]
+  - [[#environment-variables-x11_-and-exwm_][environment variables X11_* and EXWM_*]]
+  - [[#script-exwm_xrandrbash][script ~/exwm_xrandr.bash]]
+  - [[#jwexwm-change-screen-hook][jw/exwm-change-screen-hook()]]
+- [[#emacs-init-loads-files-from-melpa-and-github][Emacs init loads files from melpa and github]]
+- [[#how-to-run-exwm-under-gnome][How to run EXWM under Gnome]]
+- [[#how-to-try-the-provided-configuration][How to try the provided configuration]]
+
 * Introduction
   :PROPERTIES:
   :ID:       f98598ef-0b02-40d1-80e6-55cdd128867b
@@ -62,6 +80,9 @@ Features:
   belong to a different workspace.
 - Hide the mouse pointer when not in use.
 - Some tips about how to get a more pleasant interaction with Google Chrome.
+
+Also:
+- [[How to run EXWM under Gnome]]
 
 If you read this document on github, then internal links in the document
 will not work, you will get a 404. It is unfortunately a longstanding problem
@@ -261,16 +282,7 @@ The script has the following parts, from top to bottom, some of which are
 described later:
 - Disable X11 access control for the current user.
 - Set an environment variable for Java AWT. Run site X11 init scripts.
-- Set environment variables for X11 screens:
-  - Which screens are to be used, with what resolution, and how are they
-    arranged?
-  - Should some screen have a specific workspace?
-  - Which screen should be "primary", i.e. be used for workspaces that have not
-    been explicitly listed?
-  - Should all listed screens be used, or just one?
-  - What Dots Per Inch (X11 DPI) should be used?
-  Actually this is a bit more involved, because screens can be unplugged, see
-  the dedicated section below: [[X11 screen and workspace configuration]]
+- Set environment variables for X11 screens, by sourcing [[exwm_screen_layout]].
 - Run script, [[./exwm_xrandr.bash][~/exwm_xrandr.bash]] to execute xrandr according to the preceding
   configuration.
   This script first queries xrandr to see which screens are actually available,
@@ -311,6 +323,21 @@ layout. I found that this call must be done after EXWM has started completely,
 otherwise the settings will be lost during EXWM start. So there is a call to
 xmodmap in the emacs init file. This runs on an emacs EXWM hook and is then
 removed from the hook.
+** .xinitrc.exwm_gnome
+This script, [[./.xinitrc.exwm_gnome]], is used to configure EXWM when running under Gnome. See [[How to run EXWM under Gnome]].
+It sources ~/exwm_screen_layout.
+** exwm_screen_layout
+This bash script, [[./exwm_screen_layout]], is sourced by scripts that configure EXWM. It configures the X11 screen layout,
+by setting a number of environment variables:
+  - Which screens are to be used, with what resolution, and how are they
+    arranged?
+  - Should some screen have a specific workspace?
+  - Which screen should be "primary", i.e. be used for workspaces that have not
+    been explicitly listed?
+  - Should all listed screens be used, or just one?
+  - What Dots Per Inch (X11 DPI) should be used?
+Actually this is a bit more involved, because screens can be unplugged, see
+the dedicated section below: [[X11 screen and workspace configuration]]
 ** .Xmodmap.exwm
    :PROPERTIES:
    :ID:       ba48e5ee-b0aa-49b0-bfaf-d486a8152bc9
@@ -637,6 +664,33 @@ The provided emacs init files loads the following:
 - The [[https://github.com/raxod502/straight.el][straight]] package manager is loaded from its github repository
 - The straight package manager is used to load [[https://github.com/grettke/lolsmacs][lolsmacs]] from its github repository
 - a number of packages from melpa
+* How to run EXWM under Gnome
+Clone [[https://github.com/WJCFerguson/exwm-gnome-flashback]]
+Read the Readme and install.
+Check what is in /usr/bin/exwm-gnome-flashback, perhaps you need to modify the path to emacs?
+I replaced the line
+#+BEGIN_SRC shell
+emacs --fullscreen --eval "(exwm-enable)"
+#+END_SRC
+with
+#+BEGIN_SRC shell
+. ~/.xinitrc.exwm_gnome
+/usr/local/bin/emacs --daemon --eval "(require 'exwm)" -f exwm-enable
+/usr/local/bin/emacsclient -c
+# /usr/local/bin/emacs --fullscreen --eval "(exwm-enable)"
+#+END_SRC
+
+The Readme says that we should disable show-desktop-icons, but when I ran the command I got a message saying that the
+variable was not writable. I then logged in to Gnome and started
+#+BEGIN_SRC shell
+dconf
+#+END_SRC
+I navigated to org.gnome.desktop.background, and verified that show-desktop-icons was indeed disabled.
+
+I then opened Gnome Settings and selected submenu "Keyboard Shortcuts". I disabled all shortcuts except for:
+- "Lock screen" which I rebound to the same shortcut I use in EXWM: s-<f2>
+- "Log out", because I wanted to have this as an escape hatch.
+
 * How to try the provided configuration
   :PROPERTIES:
   :ID:       56d63cc3-3fe6-4ae8-a125-02fc427b8877
