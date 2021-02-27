@@ -1,0 +1,38 @@
+A complete configuration for the emacs EXWM X11 window manager
+
+I have created a complete example configuration for EXWM. This includes
+files like .profile, .xinitrc and of course init files for emacs.
+There is also a README that explains the configuration.
+
+I have tried to keep the configuration small, so as not to bring in a lot of
+emacs packages unrelated to EXWM. An exception to this is that there are many
+configured keybindings for EXWM, and emacs packages have been added to support
+those keybindings.
+
+I use Helm for completion in emacs, so that is what is used in the sample
+configuration. It should hopefully not be difficult to substitute a different
+completion framework.
+
+The configuration has been developed under Ubuntu, with emacs 27.1, but it
+should hopefully be easy to adapt this to other environments.
+
+You can of course also just pick fragments and put them in your current
+configuration.
+
+Features:
+- Support for multiple monitors, and plugging and unplugging of monitors.
+- Uses xmodmap to configure the keyboard.
+- Many convenient key bindings related to EXWM.
+- A mode line indicator that shows the workspace number. Only one
+  indicator per workspace.
+- A mode line indicator in EXWM windows that shows "line mode" or
+  "character mode"
+- The EXWM buffers have meaningful names.
+- The buffer list has a section for EXWM buffers. Indented buffer names
+  belong to a different workspace.
+- Hide the mouse pointer when not in use.
+- Some tips about how to get a more pleasant interaction with Google Chrome.
+
+Here is a link to a README and the configuration files:
+  https://github.com/johanwiden/exwm-setup
+

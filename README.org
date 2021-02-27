@@ -696,7 +696,8 @@ I then opened Gnome Settings and selected submenu "Keyboard Shortcuts". I disabl
   :ID:       56d63cc3-3fe6-4ae8-a125-02fc427b8877
   :TOC:       :include descendants
   :END:
-Copy .Xmodmap.exwm, .xinitrc.exwm, exwm_xrandr.bash to your home directory.
+Copy .Xmodmap.exwm, .xinitrc.exwm, exwm_xrandr.bash, set_xmodmap.sh to your home directory.
+In these scripts change references from "/home/jw" to the path to your home directory.
 
 Configure the X11_SCREEN_* and EXWM_WORKSPACE_LIST environment variables in .xinitrc.exwm.
 
@@ -705,6 +706,8 @@ Copy .emacs.d, renaming it to say ~/exwm-setup
 Assuming that your current emacs directory is ~/.emacs.d do:
 - mv .emacs.d my_emacs.d
 - ln -s exwm-setup .emacs.d
+
+In .emacs.d/config.org change references from "/home/jw" to the path to your home directory.
 
 Then either:
 - Modify your ,profile, adding what is in .profile

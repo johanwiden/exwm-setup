@@ -569,8 +569,7 @@ The code has then been modified, mainly with settings from the [[https://gitlab.
 configuration.
 
 A hook function that executes [[https://wiki.archlinux.org/index.php/Xmodmap][xmodmap]] is defined and added to 
-exwm-manage-finish-hook. The hook function unhooks itself when executed, 
-to only execute once.
+exwm-manage-finish-hook.
 
 browse-url-generic-program is redefined to use google-chrome, if not overridden 
 by the "BROWSER" environment variable, or it is defined via xdg-mime.
@@ -602,7 +601,7 @@ Press the left mouse button, and move the mouse.
 #+BEGIN_SRC emacs-lisp
   (require 'ido)
   (use-package windower
-   :ensure t)
+    :ensure t)
   (require 'browse-url)
   (require 'exwm-manage)
 
@@ -620,10 +619,10 @@ Press the left mouse button, and move the mouse.
   (defun jw/xmodmap ()
     "Execute xmodmap"
     (progn
-      (remove-hook 'exwm-manage-finish-hook 'jw/xmodmap)
-      (ambrevar/call-process-to-string "/usr/bin/xmodmap" "/home/jw/.Xmodmap.exwm")))
+      ;; (remove-hook 'exwm-manage-finish-hook 'jw/xmodmap)
+      (ambrevar/call-process-to-string "/home/jw/set_xmodmap.sh")))
 
-  (setq browse-url-generic-program 
+  (setq browse-url-generic-program
         (or
          (executable-find (or (getenv "BROWSER") ""))
          (when (executable-find "xdg-mime")
@@ -639,7 +638,7 @@ Press the left mouse button, and move the mouse.
     ;; Make class name the buffer name
     (add-hook 'exwm-update-class-hook
               (lambda ()
-              (exwm-workspace-rename-buffer exwm-class-name)))
+                (exwm-workspace-rename-buffer exwm-class-name)))
     ;; Global keybindings. 0-9 bcDfFgGhHijJkKlLmoOQrRwW !@#$%^&*() tab f2 backspace
     (unless (get 'exwm-input-global-keys 'saved-value)
       (setq exwm-input-global-keys
@@ -654,9 +653,9 @@ Press the left mouse button, and move the mouse.
               (,(kbd "s-r") . helm-run-external-command) ;; Start an application, such as google-chrome
               (,(kbd "s-W") . helm-exwm-switch-browser) ;; Switch to some browser windows
               (,(kbd "s-m") . (lambda () ;; Toggle display of mode-line and minibuffer, in an EXWM window
-                     (interactive)
-                     (exwm-layout-toggle-mode-line)
-                     (exwm-workspace-toggle-minibuffer)))
+                                (interactive)
+                                (exwm-layout-toggle-mode-line)
+                                (exwm-workspace-toggle-minibuffer)))
               (,(kbd "s-i") . exwm-input-toggle-keyboard) ;; Toggle between "line-mode" and "char-mode" in an EXWM window
               ;; 's-r': Reset (to line-mode).
               (,(kbd "s-R") . exwm-reset) ;; Try to reset EXWM to a sane mode. Panic key
@@ -675,19 +674,19 @@ Press the left mouse button, and move the mouse.
                         (number-sequence 0 9))
               ;; 'S-s-N': Move window to, and switch to, a certain workspace.
               ,@(cl-mapcar (lambda (c n)
-                          `(,(kbd (format "s-%c" c)) .
-                            (lambda ()
-                              (interactive)
-                              (exwm-workspace-move-window ,n)
-                              (exwm-workspace-switch ,n))))
-                        '(?\) ?! ?@ ?# ?$ ?% ?^ ?& ?* ?\()
-                        ;; '(?\= ?! ?\" ?# ?¤ ?% ?& ?/ ?\( ?\))
-                        (number-sequence 0 9))
+                             `(,(kbd (format "s-%c" c)) .
+                               (lambda ()
+                                 (interactive)
+                                 (exwm-workspace-move-window ,n)
+                                 (exwm-workspace-switch ,n))))
+                           '(?\) ?! ?@ ?# ?$ ?% ?^ ?& ?* ?\()
+                           ;; '(?\= ?! ?\" ?# ?¤ ?% ?& ?/ ?\( ?\))
+                           (number-sequence 0 9))
 
               ;; Bind "s-<f2>" to "slock", a simple X display locker.
               (,(kbd "s-<f2>") . (lambda ()
-                          (interactive)
-                          (start-process "" nil "/usr/bin/slock")))
+                                   (interactive)
+                                   (start-process "" nil "/usr/bin/slock")))
               (,(kbd "s-h") . windmove-left)  ;; Move to window to the left of current one. Uses universal arg
               (,(kbd "s-j") . windmove-down)  ;; Move to window below current one. Uses universal arg
               (,(kbd "s-k") . windmove-up)    ;; Move to window above current one. Uses universal arg
@@ -705,7 +704,7 @@ Press the left mouse button, and move the mouse.
               (,(kbd "s-Q") . exwm-layout-toggle-fullscreen) ;; Toggle fullscreen mode, when in an EXWM window.
               (,(kbd "s-D") . kill-this-buffer)
               (,(kbd "s-<backspace>") . kill-this-buffer)
-     )))
+              )))
     ;; Line-editing shortcuts: abBcdefFknpqsvwx
     (unless (get 'exwm-input-simulation-keys 'saved-value)
       (setq exwm-input-simulation-keys
@@ -728,7 +727,7 @@ Press the left mouse button, and move the mouse.
               (,(kbd "H-v") . ,(kbd "C-v"))
               ;; search
               (,(kbd "H-s") . ,(kbd "C-f"))
-     )))
+              )))
     ;; Default is save-buffers-kill-terminal, but that may kill daemon before its finished
     (global-set-key (kbd "C-x C-c") 'save-buffers-kill-emacs)
     (add-hook 'exwm-update-title-hook 'ambrevar/exwm-rename-buffer-to-title)
